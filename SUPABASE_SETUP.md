@@ -41,24 +41,23 @@ Isso cria:
 
 ## 4️⃣ Virar Admin
 
-**No SQL Editor:**
+**Obtenha seu UUID:**
+1. Dashboard → **Authentication** → **Users**
+2. Encontre sua linha (seu email)
+3. Copie o **UUID** (primeira coluna, à esquerda)
+
+**No SQL Editor, execute:**
 
 ```sql
-update profiles 
-set role = 'admin' 
-where email = 'seu-email@exemplo.com';
+update profiles set role = 'admin' where id = 'seu-uuid-aqui';
 ```
 
-Ou obtenha seu UUID:
-- Dashboard → Authentication → Users
-- Copie o UUID da sua linha
-- Execute:
-
+**Exemplo real:**
 ```sql
-update profiles 
-set role = 'admin' 
-where id = 'seu-uuid-aqui';
+update profiles set role = 'admin' where id = '550e8400-e29b-41d4-a716-446655440000';
 ```
+
+✅ Pronto! Agora você é admin e verá "Painel Admin" na sidebar.
 
 ## 5️⃣ Adicionar Notas (Boletim)
 
