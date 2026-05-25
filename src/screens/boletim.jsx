@@ -69,7 +69,7 @@ function BoletimScreen({ onNav, isMobile }) {
   // visao geral state: clicking disciplina opens "manage activities" overlay
   const [openDisc, setOpenDisc] = React.useState(null); // string disc name
   // detalhado state: which disc is selected
-  const [selectedDisc, setSelectedDisc] = React.useState("Artes");
+  const [selectedDisc, setSelectedDisc] = React.useState(() => Object.keys(seedBoletim()).sort()[0]);
   // activity modal
   const [actModal, setActModal] = React.useState(null); // { disc, bim, cat, editing? }
 
