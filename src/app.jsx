@@ -1,11 +1,24 @@
 // Root app + viewport stage + tweaks + screen routing
 
 function App() {
+  const { user, loading: authLoading } = useAuth();
+  const profile = useProfile(user?.id ?? null);
+
   const [t, setTweak] = useTweaks(window.__TWEAK_DEFAULTS);
-  const [screen, setScreen] = React.useState(t.showLandingFirst ? "landing" : "dashboard");
+  const [screen, setScreen] = React.useState(null); // null = aguardando auth check
   const [vp, setVp] = React.useState("desktop");
   const [subjectModal, setSubjectModal] = React.useState(null); // { subj, bim }
   const [simuladoResult, setSimuladoResult] = React.useState(null);
+
+  // Redireciona para a tela correta após resolver o estado de auth
+  React.useEffect(() => {
+    if (authLoading) return;
+    if (user) {
+      setScreen(s => s && s !== "landing" && s !== "login" ? s : "dashboard");
+    } else {
+      setScreen(t.showLandingFirst ? "landing" : "login");
+    }
+  }, [authLoading, user]);
 
   // sync palette to body
   React.useEffect(() => {
@@ -19,16 +32,37 @@ function App() {
     setScreen(s);
   };
 
-  const onLogout = () => onNav("landing");
+  const onLogout = async () => {
+    try { await authSignOut(); } catch (_) {}
+    onNav("landing");
+  };
 
-  const noSidebar = screen === "landing" || screen === "login" || screen === "simulado";
-  const showResultadoOverlay = simuladoResult && screen === "resultado";
-
-  // when entering simulado, also stash a sample result so finishing returns to result page
   const startSimulado = () => {
     setSimuladoResult(null);
     setScreen("simulado");
   };
+
+  const noSidebar = screen === "landing" || screen === "login" || screen === "simulado";
+
+  // Loading splash enquanto verifica sessão
+  if (authLoading || screen === null) {
+    return (
+      <div className="viewport-stage">
+        <div className="viewport-frame">
+          <div style={{ display: "grid", placeItems: "center", height: "100%", background: "var(--bg)" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 22, letterSpacing: "-0.04em" }}>
+                Plantão <em style={{ fontFamily: "Caveat", color: "var(--primary)", fontStyle: "normal" }}>Aluno</em>
+              </div>
+              <div style={{ marginTop: 16, color: "var(--ink-mute)", fontSize: 13, fontFamily: "JetBrains Mono, monospace" }}>
+                carregando...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="viewport-stage">
@@ -40,10 +74,10 @@ function App() {
           )}
 
           <main className="main">
-            {screen === "landing"   && <LandingScreen   onEnter={() => onNav("dashboard")} onNav={onNav} isMobile={isMobile} />}
-            {screen === "login"     && <LoginScreen     onEnter={() => onNav("dashboard")} onNav={onNav} isMobile={isMobile} />}
-            {screen === "dashboard" && <DashboardScreen onNav={onNav} isMobile={isMobile} />}
-            {screen === "resumos"   && (
+            {screen === "landing"    && <LandingScreen   onEnter={() => onNav(user ? "dashboard" : "login")} onNav={onNav} isMobile={isMobile} />}
+            {screen === "login"      && <LoginScreen     onEnter={() => onNav("dashboard")} onNav={onNav} isMobile={isMobile} />}
+            {screen === "dashboard"  && <DashboardScreen onNav={onNav} isMobile={isMobile} user={user} profile={profile} />}
+            {screen === "resumos"    && (
               <ResumosScreen
                 onNav={onNav}
                 isMobile={isMobile}
@@ -55,6 +89,7 @@ function App() {
                 isMobile={isMobile}
                 onExit={() => onNav("resumos")}
                 onFinish={(result) => { setSimuladoResult(result); setScreen("resultado"); }}
+                userId={user?.id}
               />
             )}
             {screen === "resultado"  && (
@@ -65,10 +100,10 @@ function App() {
                 isMobile={isMobile}
               />
             )}
-            {screen === "desempenho" && <DesempenhoScreen onNav={onNav} isMobile={isMobile} />}
-            {screen === "boletim"    && <BoletimScreen    onNav={onNav} isMobile={isMobile} />}
-            {screen === "conquistas" && <ConquistasScreen onNav={onNav} isMobile={isMobile} />}
-            {screen === "admin"      && <AdminScreen      onNav={onNav} isMobile={isMobile} />}
+            {screen === "desempenho" && <DesempenhoScreen onNav={onNav} isMobile={isMobile} userId={user?.id} />}
+            {screen === "boletim"    && <BoletimScreen    onNav={onNav} isMobile={isMobile} userId={user?.id} />}
+            {screen === "conquistas" && <ConquistasScreen onNav={onNav} isMobile={isMobile} userId={user?.id} />}
+            {screen === "admin"      && <AdminScreen      onNav={onNav} isMobile={isMobile} userId={user?.id} />}
           </main>
 
           {!noSidebar && isMobile && <MobileBottomNav active={screen} onNav={onNav} />}

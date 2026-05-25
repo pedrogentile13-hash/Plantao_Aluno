@@ -1,5 +1,30 @@
 function LoginScreen({ onEnter, onNav, isMobile }) {
-  const [mode, setMode] = React.useState("login"); // 'login' | 'signup'
+  const [mode,       setMode]       = React.useState("login");
+  const [email,      setEmail]      = React.useState("");
+  const [password,   setPassword]   = React.useState("");
+  const [name,       setName]       = React.useState("");
+  const [turma,      setTurma]      = React.useState("9C");
+  const [authError,  setAuthError]  = React.useState(null);
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    setSubmitting(true);
+    try {
+      if (mode === "login") {
+        await authSignIn(email, password);
+      } else {
+        await authSignUp(email, password, name, turma);
+      }
+      onEnter();
+    } catch (err) {
+      setAuthError(err.message || "Erro ao autenticar. Verifique seus dados.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: "100%", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(360px, 480px) 1fr" }}>
       <style>{`
@@ -17,6 +42,7 @@ function LoginScreen({ onEnter, onNav, isMobile }) {
         .auth-row { display: flex; flex-direction: column; gap: 6px; }
         .auth-help { font-size: 12.5px; color: var(--ink-mute); }
         .auth-foot { margin-top: auto; padding-top: 24px; font: 500 11px/1.4 "JetBrains Mono", monospace; letter-spacing: 0.08em; color: var(--ink-mute); }
+        .auth-error { background: oklch(0.96 0.04 25); border: 1px solid oklch(0.88 0.08 25); color: oklch(0.40 0.10 25); border-radius: 10px; padding: 10px 14px; font-size: 13px; line-height: 1.4; }
 
         .auth-side { position: relative; background: var(--ink); color: var(--paper); padding: 56px 56px; overflow: hidden; display: flex; flex-direction: column; }
         .is-mobile .auth-side { display: none; }
@@ -42,35 +68,45 @@ function LoginScreen({ onEnter, onNav, isMobile }) {
         <p className="auth-sub">{mode === "login" ? "Entre com a sua conta para continuar de onde parou." : "Crie sua conta — leva uns 20 segundos."}</p>
 
         <div className="auth-switch">
-          <button className={mode === "login" ? "on" : ""} onClick={() => setMode("login")}>Entrar</button>
-          <button className={mode === "signup" ? "on" : ""} onClick={() => setMode("signup")}>Criar conta</button>
+          <button className={mode === "login" ? "on" : ""} onClick={() => { setMode("login"); setAuthError(null); }}>Entrar</button>
+          <button className={mode === "signup" ? "on" : ""} onClick={() => { setMode("signup"); setAuthError(null); }}>Criar conta</button>
         </div>
 
-        <form className="auth-form" onSubmit={(e) => { e.preventDefault(); onEnter(); }}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           {mode === "signup" && (
             <div className="auth-row">
               <label className="field-label">Nome completo</label>
-              <input className="input" placeholder="Como você quer ser chamado" defaultValue="Pedro Gentile" />
+              <input className="input" placeholder="Como você quer ser chamado"
+                value={name} onChange={e => setName(e.target.value)} required />
             </div>
           )}
           <div className="auth-row">
             <label className="field-label">E-mail</label>
-            <input className="input" type="email" placeholder="você@escola.com" defaultValue="pedro@gentile.dev" />
+            <input className="input" type="email" placeholder="você@escola.com"
+              value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
           <div className="auth-row">
             <label className="field-label">Senha</label>
-            <input className="input" type="password" placeholder="••••••••" defaultValue="••••••••" />
+            <input className="input" type="password" placeholder="••••••••"
+              value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
           </div>
           {mode === "signup" && (
             <div className="auth-row">
               <label className="field-label">Turma</label>
-              <select className="input" defaultValue="9C">
+              <select className="input" value={turma} onChange={e => setTurma(e.target.value)}>
                 <option>9A</option><option>9B</option><option>9C</option><option>9D</option>
               </select>
             </div>
           )}
-          <button className="btn btn-primary btn-lg" type="submit" style={{ alignSelf: "flex-start", marginTop: 6 }}>
-            {mode === "login" ? "Entrar" : "Criar conta"} <Icon name="arrow" size={16}/>
+
+          {authError && <div className="auth-error">{authError}</div>}
+
+          <button className="btn btn-primary btn-lg" type="submit" disabled={submitting}
+            style={{ alignSelf: "flex-start", marginTop: 6, opacity: submitting ? 0.7 : 1 }}>
+            {submitting
+              ? (mode === "login" ? "Entrando…" : "Criando conta…")
+              : (mode === "login" ? "Entrar" : "Criar conta")}
+            {!submitting && <Icon name="arrow" size={16}/>}
           </button>
           <div className="auth-help">
             {mode === "login"

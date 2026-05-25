@@ -1,6 +1,24 @@
-function ConquistasScreen({ onNav, isMobile }) {
-  const got = CONQUISTAS.filter(c => c.got);
-  const pending = CONQUISTAS.filter(c => !c.got);
+function ConquistasScreen({ onNav, isMobile, userId }) {
+  const unlockedIds = useConquistasDesbloqueadas(userId);
+
+  // Se temos dados reais do Supabase, usa-os; caso contrário usa o mock
+  const got = React.useMemo(() => {
+    if (!unlockedIds) return CONQUISTAS.filter(c => c.got);
+    const idSet = new Set(unlockedIds.map(u => u.conquista_id));
+    return CONQUISTAS.filter(c => idSet.has(c.id));
+  }, [unlockedIds]);
+
+  const pending = React.useMemo(() => {
+    if (!unlockedIds) return CONQUISTAS.filter(c => !c.got);
+    const idSet = new Set(unlockedIds.map(u => u.conquista_id));
+    return CONQUISTAS.filter(c => !idSet.has(c.id));
+  }, [unlockedIds]);
+
+  const gotWithDate = React.useMemo(() => {
+    if (!unlockedIds) return got;
+    const dateMap = Object.fromEntries(unlockedIds.map(u => [u.conquista_id, u.unlocked_at]));
+    return got.map(c => ({ ...c, date: dateMap[c.id] || c.date }));
+  }, [got, unlockedIds]);
 
   const tierColor = (t) => ({
     bronze: { bg: "oklch(0.78 0.10 60)", fg: "oklch(0.20 0.06 60)" },
@@ -120,10 +138,10 @@ function ConquistasScreen({ onNav, isMobile }) {
       </div>
 
       <div className="rule-h" style={{ margin: "0 0 14px" }}>
-        <span className="lbl">Desbloqueadas · {got.length}</span>
+        <span className="lbl">Desbloqueadas · {gotWithDate.length}</span>
       </div>
       <div className="conq-grid">
-        {got.map((c, i) => {
+        {gotWithDate.map((c, i) => {
           const tc = tierColor(c.tier);
           return (
             <div className="conq-card" key={c.id}>
@@ -140,7 +158,7 @@ function ConquistasScreen({ onNav, isMobile }) {
       </div>
 
       <div className="rule-h" style={{ margin: "32px 0 14px" }}>
-        <span className="lbl">Em progresso · {pending.length}</span>
+        <span className="lbl">Em progresso · {pending.length + (unlockedIds ? 0 : 0)}</span>
         <span className="lbl muted f-mono">Continue estudando</span>
       </div>
       <div className="conq-grid">
