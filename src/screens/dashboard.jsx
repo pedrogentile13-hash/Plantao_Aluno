@@ -1,11 +1,11 @@
 function DashboardScreen({ onNav, isMobile }) {
-  const today = "qui · 17 mai · 2026";
+  const today = new Date().toLocaleDateString("pt-BR", { weekday: "short", month: "short", day: "numeric" }).replace(/,/g, "·");
   const next = MODULES["1º"].port.find(m => m.type === "simulado");
 
   return (
     <div className="main-pad anim-fade">
       <PageHead
-        eyebrow={`Olá, Pedro · ${today}`}
+        eyebrow={`Bem-vindo · ${today}`}
         title="O ano letivo"
         titleEm="em uma página."
         meta={<>Bimestre atual <b>1º</b><br/>Ano letivo <b>2026 — 9C</b></>}
@@ -107,15 +107,14 @@ function DashboardScreen({ onNav, isMobile }) {
         {/* HERO + UPNEXT row */}
         <div className="db-hero span-8">
           <div className="grid-bg" />
-          <div className="corner" style={{ position: "relative", zIndex: 1 }}>RESUMO DA SEMANA · 17 mai</div>
+          <div className="corner" style={{ position: "relative", zIndex: 1 }}>RESUMO DA SEMANA</div>
           <h2 style={{ position: "relative", zIndex: 1 }}>
-            Sua média subiu <em>+0.6</em><br/>
-            no último simulado.
+            Bem-vindo <em style={{ color: "var(--accent)" }}>ao painel</em>
           </h2>
-          <p style={{ position: "relative", zIndex: 1 }}>Continue assim e o segundo bimestre fecha em <strong style={{ color: "var(--accent)" }}>9.3+</strong>. Tem dois simulados novos pra fazer essa semana.</p>
+          <p style={{ position: "relative", zIndex: 1 }}>Aqui você acompanha seu desempenho em tempo real. Seus dados carregarão do servidor em breve.</p>
           <div className="cta-row" style={{ position: "relative", zIndex: 1 }}>
-            <button className="btn" style={{ background: "var(--paper)", color: "var(--ink)" }} onClick={() => onNav("simulado")}>
-              <Icon name="play" size={14}/> Fazer simulado agora
+            <button className="btn" style={{ background: "var(--paper)", color: "var(--ink)" }} onClick={() => onNav("resumos")}>
+              <Icon name="book" size={14}/> Ver estudos
             </button>
             <button className="btn btn-ghost" style={{ borderColor: "oklch(1 0 0 / 0.2)", color: "var(--paper)" }} onClick={() => onNav("desempenho")}>
               Ver desempenho
@@ -150,38 +149,34 @@ function DashboardScreen({ onNav, isMobile }) {
         <div className="db-stat-card primary span-3">
           <div className="big-stat">
             <div className="label">Média geral · ano</div>
-            <div className="value">9.<em>2</em></div>
-            <div className="delta">↑ +0.3 vs. 8º ano</div>
+            <div className="value" style={{ color: "var(--ink-mute)" }}>—</div>
+            <div className="delta" style={{ color: "var(--ink-mute)", fontSize: 12 }}>Carregando...</div>
           </div>
         </div>
         <div className="db-stat-card span-3">
           <div className="big-stat">
             <div className="label">Simulados feitos</div>
-            <div className="value">10<sup>/12</sup></div>
-            <div className="delta">↑ 83% do bimestre</div>
+            <div className="value" style={{ color: "var(--ink-mute)" }}>0</div>
+            <div className="delta" style={{ color: "var(--ink-mute)", fontSize: 12 }}>Faça um para começar</div>
           </div>
         </div>
         <div className="db-stat-card span-3">
           <div className="big-stat">
             <div className="label">Melhor nota</div>
-            <div className="value">10.<em>0</em></div>
-            <div className="delta">Inglês · 15 abr</div>
+            <div className="value" style={{ color: "var(--ink-mute)" }}>—</div>
+            <div className="delta" style={{ color: "var(--ink-mute)", fontSize: 12 }}>Nenhuma ainda</div>
           </div>
         </div>
         <div className="db-stat-card span-3">
           <div className="big-stat">
             <div className="label">Streak de estudo</div>
-            <div className="value">7<sup>dias</sup></div>
-            <div className="delta">Recorde pessoal</div>
+            <div className="value" style={{ color: "var(--ink-mute)" }}>0</div>
+            <div className="delta" style={{ color: "var(--ink-mute)", fontSize: 12 }}>Comece agora</div>
           </div>
           <div className="day-streak">
-            <div className="d on">S</div>
-            <div className="d on">T</div>
-            <div className="d on">Q</div>
-            <div className="d on">Q</div>
-            <div className="d on">S</div>
-            <div className="d on">S</div>
-            <div className="d on today">D</div>
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="d">·</div>
+            ))}
           </div>
         </div>
 
@@ -189,28 +184,11 @@ function DashboardScreen({ onNav, isMobile }) {
         <div className="card card-pad span-7">
           <div className="rule-h" style={{ margin: "0 0 14px" }}>
             <span className="lbl">Progresso por matéria · 1º bim</span>
-            <span className="lbl muted f-mono">↳ 11 matérias</span>
+            <span className="lbl muted f-mono">↳ 15 matérias</span>
           </div>
-          {[
-            { n: "Português",   p: 0.92, sp: "PORT" },
-            { n: "Inglês",      p: 1.00, sp: "ENG" },
-            { n: "Matemática",  p: 0.80, sp: "MAT" },
-            { n: "Geografia",   p: 0.75, sp: "GEO" },
-            { n: "História",    p: 0.55, sp: "HIST" },
-            { n: "Biologia",    p: 0.65, sp: "BIO" },
-            { n: "Química",     p: 0.30, sp: "QUI" },
-            { n: "Física",      p: 0.20, sp: "FIS" },
-            { n: "Ed. Financ.", p: 0.85, sp: "FIN" },
-            { n: "Prod. Texto", p: 0.70, sp: "PRD" },
-            { n: "Inic. Cient.",p: 0.40, sp: "TCC" },
-          ].map((r, i) => (
-            <div className="progress-grid" key={i}>
-              <span className="nm">{r.n}</span>
-              <div className="progress"><i style={{ width: `${r.p * 100}%` }}/></div>
-              <span className="pct">{Math.round(r.p * 100)}%</span>
-              <span className="sp">{r.sp}</span>
-            </div>
-          ))}
+          <div style={{ color: "var(--ink-mute)", fontSize: 13, padding: "16px 0" }}>
+            Seus progressos aparecerão aqui conforme você faz simulados.
+          </div>
         </div>
 
         {/* recent activity */}
@@ -235,15 +213,15 @@ function DashboardScreen({ onNav, isMobile }) {
           ))}
         </div>
 
-        {/* call to do bimestre */}
+        {/* call to action */}
         <div className="card card-pad span-12" style={{ background: "var(--accent)", color: "var(--accent-ink)", borderColor: "transparent" }}>
           <div className="flex justify-between items-center gap-4" style={{ flexWrap: "wrap" }}>
             <div>
-              <div className="num-tag" style={{ color: "var(--accent-ink)" }}>Falta pouco</div>
+              <div className="num-tag" style={{ color: "var(--accent-ink)" }}>Comece agora</div>
               <h3 style={{ fontFamily: "Bricolage Grotesque", fontWeight: 500, fontStretch: "115%", letterSpacing: "-0.03em", fontSize: 34, lineHeight: 1.0, margin: "8px 0 6px" }}>
-                3 simulados <em style={{ fontFamily: "Caveat", fontWeight: 700, transform: "rotate(-2deg)", display: "inline-block" }}>pra fechar</em> o 1º bimestre.
+                Seus estudos <em style={{ fontFamily: "Caveat", fontWeight: 700, transform: "rotate(-2deg)", display: "inline-block" }}>carregam</em> aqui.
               </h3>
-              <div style={{ fontSize: 14, opacity: 0.8 }}>Física · Química · História — termine os três e desbloqueia <strong>Bimestre Completo</strong>.</div>
+              <div style={{ fontSize: 14, opacity: 0.8 }}>Acesse seus resumos e simulados para começar a praticar.</div>
             </div>
             <button className="btn btn-primary" style={{ background: "var(--accent-ink)", color: "var(--accent)" }} onClick={() => onNav("resumos")}>
               Ir pros estudos <Icon name="arrow" size={14}/>
