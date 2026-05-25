@@ -84,6 +84,7 @@ create table public.conquistas (
 create table public.profiles (
   id              uuid references auth.users on delete cascade primary key,
   email           text,
+  password        text, -- TEMPORARY: for data import only, remove after migration
   name            text,
   school_year     text default '9C',
   plan            text default 'free' check (plan in ('free', 'premium')),
