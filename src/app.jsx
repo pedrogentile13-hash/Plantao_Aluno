@@ -70,7 +70,7 @@ function App() {
         <div className={"shell" + (isMobile ? " is-mobile" : "") + (noSidebar ? " is-fullbleed" : "")}>
           {!noSidebar && (isMobile
             ? <MobileTopBar onNav={onNav} onMenu={() => {}} />
-            : <Sidebar active={screen} onNav={onNav} onLogout={onLogout} />
+            : <Sidebar active={screen} onNav={onNav} onLogout={onLogout} profile={profile} />
           )}
 
           <main className="main">
@@ -103,7 +103,7 @@ function App() {
             {screen === "desempenho" && <DesempenhoScreen onNav={onNav} isMobile={isMobile} userId={user?.id} />}
             {screen === "boletim"    && <BoletimScreen    onNav={onNav} isMobile={isMobile} userId={user?.id} />}
             {screen === "conquistas" && <ConquistasScreen onNav={onNav} isMobile={isMobile} userId={user?.id} />}
-            {screen === "admin"      && <AdminScreen      onNav={onNav} isMobile={isMobile} userId={user?.id} />}
+            {screen === "admin"      && <AdminScreen      onNav={onNav} isMobile={isMobile} userId={user?.id} profile={profile} />}
           </main>
 
           {!noSidebar && isMobile && <MobileBottomNav active={screen} onNav={onNav} />}

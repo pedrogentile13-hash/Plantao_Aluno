@@ -1,4 +1,43 @@
-function AdminScreen({ onNav, isMobile }) {
+function AdminScreen({ onNav, isMobile, userId, profile }) {
+  // ⚠️ Bloqueia acesso se não for admin
+  if (!userId || !profile || profile.role !== 'admin') {
+    return (
+      <div className="main-pad anim-fade" style={{ display: 'grid', placeItems: 'center', minHeight: '100%' }}>
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <div style={{
+            fontFamily: 'Bricolage Grotesque',
+            fontWeight: 700,
+            fontSize: 48,
+            letterSpacing: '-0.04em',
+            color: 'var(--ink-mute)',
+            marginBottom: 16
+          }}>
+            🔐
+          </div>
+          <h2 style={{
+            fontFamily: 'Bricolage Grotesque',
+            fontWeight: 600,
+            fontSize: 24,
+            letterSpacing: '-0.02em',
+            margin: '0 0 8px'
+          }}>
+            Acesso Negado
+          </h2>
+          <p style={{ color: 'var(--ink-soft)', fontSize: 15, lineHeight: 1.5, margin: '0 0 20px' }}>
+            Você precisa ser admin para acessar este painel.
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => onNav('dashboard')}
+            style={{ alignSelf: 'center' }}
+          >
+            ← Voltar ao Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const [subj, setSubj] = React.useState("port");
   const [bim, setBim] = React.useState("1º");
   const [tab, setTab] = React.useState("resumo"); // resumo | simulado | modulos

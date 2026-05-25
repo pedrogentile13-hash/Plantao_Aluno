@@ -12,7 +12,13 @@ const NAV_ADMIN = [
   { id: "admin",      label: "Painel Admin", num: "AD", icon: "shield" },
 ];
 
-function Sidebar({ active, onNav, onLogout }) {
+function Sidebar({ active, onNav, onLogout, profile }) {
+  const isAdmin = profile?.role === 'admin';
+  const fullName = profile?.full_name || 'Usuário';
+  const initials = fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const role = profile?.role === 'admin' ? 'Admin' : 'Aluno';
+  const turma = profile?.turma || '9C';
+
   return (
     <aside className="sidebar">
       <button onClick={() => onNav("landing")} className="sidebar-brand">
@@ -35,23 +41,27 @@ function Sidebar({ active, onNav, onLogout }) {
         ))}
       </div>
 
-      <div className="nav-section">Gestão</div>
-      <div className="flex-col gap-1">
-        {NAV_ADMIN.map(item => (
-          <button key={item.id}
-            className={"nav-item" + (active === item.id ? " active" : "")}
-            onClick={() => onNav(item.id)}>
-            <span className="num">{item.num}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
+      {isAdmin && (
+        <>
+          <div className="nav-section">Gestão</div>
+          <div className="flex-col gap-1">
+            {NAV_ADMIN.map(item => (
+              <button key={item.id}
+                className={"nav-item" + (active === item.id ? " active" : "")}
+                onClick={() => onNav(item.id)}>
+                <span className="num">{item.num}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="sidebar-foot">
-        <div className="avatar">PG</div>
+        <div className="avatar">{initials}</div>
         <div className="grow">
-          <div className="name">Pedro Gentile</div>
-          <div className="role">Aluno · 9C</div>
+          <div className="name">{fullName}</div>
+          <div className="role">{role} · {turma}</div>
         </div>
         <button
           onClick={onLogout}
