@@ -1,24 +1,15 @@
 # Setup Supabase — Plantão Aluno
 
-## ⚠️ Se Receber Erro de Política Duplicada
-
-**Execute PRIMEIRO:**
-1. SQL Editor → New Query
-2. Cole `supabase/reset.sql` completo
-3. RUN
-
-Depois prossiga normalmente.
-
----
-
-## 1️⃣ Executar Schema
+## 1️⃣ Limpeza Total e Criação do Schema
 
 **Acesse o Supabase Dashboard → seu projeto novo → SQL Editor**
 
 1. Clique em **"New Query"**
-2. Copie o conteúdo de `supabase/schema.sql`
+2. Copie o conteúdo de `supabase/clean.sql`
 3. Cole no editor
 4. Clique em **"Run"** (ou `Ctrl+Enter`)
+
+⚠️ **`clean.sql` faz tudo**: dropa tabelas antigas, cria schema completo + RLS + índices. Execute APENAS ISSO.
 
 ## 2️⃣ Popular Dados Base
 
