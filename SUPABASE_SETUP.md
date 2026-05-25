@@ -1,5 +1,16 @@
 # Setup Supabase — Plantão Aluno
 
+## ⚠️ Se Receber Erro de Política Duplicada
+
+**Execute PRIMEIRO:**
+1. SQL Editor → New Query
+2. Cole `supabase/reset.sql` completo
+3. RUN
+
+Depois prossiga normalmente.
+
+---
+
 ## 1️⃣ Executar Schema
 
 **Acesse o Supabase Dashboard → seu projeto novo → SQL Editor**
@@ -8,7 +19,6 @@
 2. Copie o conteúdo de `supabase/schema.sql`
 3. Cole no editor
 4. Clique em **"Run"** (ou `Ctrl+Enter`)
-5. Se receber erro de política duplicada, execute `supabase/schema.sql` novamente — ele trata conflitos
 
 ## 2️⃣ Popular Dados Base
 
@@ -36,9 +46,9 @@ Isso cria:
    - Turma (9A, 9B, 9C, 9D)
 4. Clique em **"Criar conta"**
 
-## 4️⃣ Virar Admin
+⚠️ **Você será criado como `student` por padrão.**
 
-Isso permite editar notas e criar questões.
+## 4️⃣ Virar Admin
 
 **No SQL Editor:**
 
