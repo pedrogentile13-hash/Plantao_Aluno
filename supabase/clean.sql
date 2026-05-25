@@ -87,7 +87,7 @@ create table public.profiles (
   password        text, -- TEMPORARY: for data import only, remove after migration
   name            text,
   school_year     text default '9C',
-  plan            text default 'free' check (plan in ('free', 'premium')),
+  plan            text default 'free' check (plan in ('free', 'premium', 'lite', 'gratis')),
   last_password_change timestamptz,
   created_at      timestamptz default now(),
   is_admin        boolean default false
