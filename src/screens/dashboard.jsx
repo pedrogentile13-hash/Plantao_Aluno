@@ -125,13 +125,24 @@ function DashboardScreen({ onNav, isMobile }) {
 
         <div className="upnext span-4">
           <div className="num-tag">A seguir</div>
-          <h3>Simulado<br/>{next.title.replace("Simulado · ", "")}</h3>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14, margin: 0 }}>
-            30 questões · 8 fáceis · 15 médias · 7 difíceis. Tempo médio: <strong>22min</strong>.
-          </p>
-          <div className="meta">PORT · 1º BIM · LIVRO PARADIDÁTICO</div>
-          <button className="btn btn-accent" onClick={() => onNav("simulado")} style={{ background: "var(--primary)", marginTop: "auto" }}>
-            Começar <Icon name="arrow" size={14}/>
+          {next ? (
+            <>
+              <h3>Simulado<br/>{next.title.replace("Simulado · ", "")}</h3>
+              <p style={{ color: "var(--ink-soft)", fontSize: 14, margin: 0 }}>
+                {next.sub || "Questões disponíveis para praticar."}
+              </p>
+            </>
+          ) : (
+            <>
+              <h3>Nenhum<br/>simulado ainda</h3>
+              <p style={{ color: "var(--ink-soft)", fontSize: 14, margin: 0 }}>
+                Quando o professor adicionar questões, elas aparecerão aqui.
+              </p>
+            </>
+          )}
+          <div className="meta">1º BIM · AGUARDANDO CONTEÚDO</div>
+          <button className="btn btn-accent" onClick={() => onNav("resumos")} style={{ background: "var(--primary)", marginTop: "auto" }}>
+            Ver estudos <Icon name="arrow" size={14}/>
           </button>
         </div>
 
@@ -208,7 +219,11 @@ function DashboardScreen({ onNav, isMobile }) {
             <span className="lbl">Atividade recente</span>
             <button className="btn-link f-mono" style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }} onClick={() => onNav("desempenho")}>Ver tudo</button>
           </div>
-          {PERF_HISTORY.slice(-6).reverse().map(p => (
+          {PERF_HISTORY.filter(p => p.total > 0).length === 0 ? (
+            <div style={{ color: "var(--ink-mute)", fontSize: 13, padding: "16px 0" }}>
+              Nenhuma atividade ainda. Faça um simulado para ver seu histórico aqui.
+            </div>
+          ) : PERF_HISTORY.filter(p => p.total > 0).slice(-6).reverse().map(p => (
             <div className="activity-row" key={p.id}>
               <span className="d">{p.data}</span>
               <div>
