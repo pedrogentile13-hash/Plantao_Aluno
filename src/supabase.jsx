@@ -131,3 +131,97 @@ async function unlockConquista(userId, conquistaId) {
   if (error && !error.message.includes("unique")) throw error;
 }
 window.unlockConquista = unlockConquista;
+
+// ── Dados Base (Subjects, Bimestres, Modules, Questoes) ─────
+
+function useSubjects() {
+  const [subjects, setSubjects] = React.useState([]);
+
+  React.useEffect(() => {
+    db.from("subjects")
+      .select("*")
+      .order("name")
+      .then(({ data }) => { if (data) setSubjects(data); });
+  }, []);
+
+  return subjects;
+}
+window.useSubjects = useSubjects;
+
+function useBimestres() {
+  const [bims, setBims] = React.useState([]);
+
+  React.useEffect(() => {
+    db.from("bimestres")
+      .select("*")
+      .order("id")
+      .then(({ data }) => { if (data) setBims(data); });
+  }, []);
+
+  return bims;
+}
+window.useBimestres = useBimestres;
+
+function useModules(subjectId, bimestre) {
+  const [modules, setModules] = React.useState([]);
+
+  React.useEffect(() => {
+    if (!subjectId || bimestre == null) { setModules([]); return; }
+    db.from("modules")
+      .select("*")
+      .eq("subject_id", subjectId)
+      .eq("bimestre", bimestre)
+      .order("order_idx")
+      .then(({ data }) => { if (data) setModules(data); });
+  }, [subjectId, bimestre]);
+
+  return modules;
+}
+window.useModules = useModules;
+
+function useQuestoes(moduleId) {
+  const [questoes, setQuestoes] = React.useState([]);
+
+  React.useEffect(() => {
+    if (!moduleId) { setQuestoes([]); return; }
+    db.from("questoes")
+      .select("*")
+      .eq("module_id", moduleId)
+      .order("number")
+      .then(({ data }) => { if (data) setQuestoes(data); });
+  }, [moduleId]);
+
+  return questoes;
+}
+window.useQuestoes = useQuestoes;
+
+function usePerfHistory(userId, subjectId) {
+  const [history, setHistory] = React.useState([]);
+
+  React.useEffect(() => {
+    if (!userId) { setHistory([]); return; }
+    let q = db.from("perf_history")
+      .select("*")
+      .eq("user_id", userId);
+    if (subjectId) q = q.eq("subject_id", subjectId);
+    q.order("data_point_date")
+      .then(({ data }) => { if (data) setHistory(data); });
+  }, [userId, subjectId]);
+
+  return history;
+}
+window.usePerfHistory = usePerfHistory;
+
+// ── Write Functions ──────────────────────────────────────────
+
+async function savePerfHistory(userId, subjectId, valor, tipo) {
+  const { error } = await db.from("perf_history").upsert({
+    user_id: userId,
+    subject_id: subjectId,
+    valor,
+    tipo,
+    data_point_date: new Date().toISOString().split("T")[0]
+  }, { onConflict: "user_id,subject_id,data_point_date,tipo" });
+  if (error) throw error;
+}
+window.savePerfHistory = savePerfHistory;
