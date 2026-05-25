@@ -11,17 +11,21 @@ const SUBJECTS = [
   { id: "qui",   name: "Química",              short: "QUI",  topic: "Modelos atômicos · da matéria aos átomos",   color: "#6a4b1f", glyph: "Q" },
   { id: "fin",   name: "Educação Financeira",  short: "FIN",  topic: "Orçamento pessoal e juros simples",          color: "#1d4d4f", glyph: "$" },
   { id: "prod",  name: "Produção Textual",     short: "PRD",  topic: "Dissertação · estrutura argumentativa",      color: "#2d2d3a", glyph: "T" },
-  { id: "tcc",   name: "Iniciação Científica", short: "TCC",  topic: "Método científico · projeto de pesquisa",    color: "#4a2a5b", glyph: "C" }
+  { id: "tcc",   name: "Iniciação Científica", short: "TCC",  topic: "Método científico · projeto de pesquisa",    color: "#4a2a5b", glyph: "C" },
+  { id: "art",   name: "Artes",                short: "ART",  topic: "Expressão criativa · história da arte",       color: "#c23876", glyph: "A" },
+  { id: "edf",   name: "Educação Física",      short: "EDF",  topic: "Movimento corporal · saúde e bem-estar",     color: "#d84a3a", glyph: "🏃" },
+  { id: "pcp",   name: "Pensamento Computacional", short: "PCP", topic: "Lógica de programação · algoritmos",       color: "#0891b2", glyph: "💻" },
+  { id: "ese",   name: "Educação Socioemocional", short: "ESE", topic: "Inteligência emocional · relações",         color: "#6b5b95", glyph: "❤️" }
 ];
 
 const BIMESTRES = ["1º", "2º", "3º", "4º"];
 
 // modules per bimestre × subject (loaded from Supabase modules table)
 const MODULES = {
-  "1º": { port: [{ type: "resumo", title: "Carregando...", sub: "Aguarde os dados do servidor", status: "soon" }], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
-  "2º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
-  "3º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
-  "4º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
+  "1º": { port: [{ type: "resumo", title: "Carregando...", sub: "Aguarde os dados do servidor", status: "soon" }], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [], art: [], edf: [], pcp: [], ese: [] },
+  "2º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [], art: [], edf: [], pcp: [], ese: [] },
+  "3º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [], art: [], edf: [], pcp: [], ese: [] },
+  "4º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [], art: [], edf: [], pcp: [], ese: [] },
 };
 
 // boletim (loaded from Supabase notas table, seed fallback for UI initialization)
@@ -37,6 +41,10 @@ const BOLETIM = [
   { disc: "Educação Financeira", prof: "Prof. Educação Financeira", notas: [null, null, null, null] },
   { disc: "Produção Textual",    prof: "Prof. Produção Textual",    notas: [null, null, null, null] },
   { disc: "Iniciação Científica", prof: "Prof. Iniciação Científica", notas: [null, null, null, null] },
+  { disc: "Artes",           prof: "Prof. Artes",       notas: [null, null, null, null] },
+  { disc: "Educação Física", prof: "Prof. Educação Física", notas: [null, null, null, null] },
+  { disc: "Pensamento Computacional", prof: "Prof. Pensamento Computacional", notas: [null, null, null, null] },
+  { disc: "Educação Socioemocional",  prof: "Prof. Educação Socioemocional",  notas: [null, null, null, null] },
 ];
 
 // conquistas (loaded from Supabase conquistas_desbloqueadas table, seed reference)
