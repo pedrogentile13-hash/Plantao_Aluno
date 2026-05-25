@@ -82,25 +82,28 @@ create table public.conquistas (
 
 -- 6. Perfis de usuários
 create table public.profiles (
-  id uuid references auth.users on delete cascade primary key,
-  full_name text,
-  turma text default '9C',
-  avatar_url text,
-  role text default 'student' check (role in ('student', 'admin', 'teacher')),
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  id              uuid references auth.users on delete cascade primary key,
+  email           text,
+  name            text,
+  school_year     text default '9C',
+  plan            text default 'free' check (plan in ('free', 'premium')),
+  last_password_change timestamptz,
+  created_at      timestamptz default now(),
+  is_admin        boolean default false
 );
 
 -- Trigger: cria profile automaticamente ao criar usuário
 create function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, full_name, turma, role)
+  insert into public.profiles (id, email, name, school_year, plan, is_admin)
   values (
     new.id,
+    new.email,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
     coalesce(new.raw_user_meta_data->>'turma', '9C'),
-    'student'
+    'free',
+    false
   );
   return new;
 end;
@@ -183,7 +186,7 @@ alter table public.conquistas_desbloqueadas enable row level security;
 create policy "profiles: own read"
   on public.profiles for select
   using (auth.uid() = id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin', 'teacher')
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
   ));
 
 create policy "profiles: own update"
@@ -208,19 +211,19 @@ create policy "conquistas: public read"
 create policy "notas: own select"
   on public.notas for select
   using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin', 'teacher')
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
   ));
 
 create policy "notas: teacher write"
   on public.notas for all
   using (exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin', 'teacher')
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
   ));
 
 create policy "simulado_results: own select"
   on public.simulado_results for select
   using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin', 'teacher')
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
   ));
 
 create policy "simulado_results: own insert"
@@ -230,7 +233,7 @@ create policy "simulado_results: own insert"
 create policy "perf_history: own select"
   on public.perf_history for select
   using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin', 'teacher')
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
   ));
 
 create policy "perf_history: own insert"
@@ -240,7 +243,7 @@ create policy "perf_history: own insert"
 create policy "conquistas_desbloqueadas: own select"
   on public.conquistas_desbloqueadas for select
   using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.role in ('admin', 'teacher')
+    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
   ));
 
 create policy "conquistas_desbloqueadas: own insert"

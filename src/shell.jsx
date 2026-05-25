@@ -13,11 +13,11 @@ const NAV_ADMIN = [
 ];
 
 function Sidebar({ active, onNav, onLogout, profile }) {
-  const isAdmin = profile?.role === 'admin';
-  const fullName = profile?.full_name || 'Usuário';
+  const isAdmin = profile?.is_admin === true;
+  const fullName = profile?.name || 'Usuário';
   const initials = fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  const role = profile?.role === 'admin' ? 'Admin' : 'Aluno';
-  const turma = profile?.turma || '9C';
+  const role = profile?.is_admin ? 'Admin' : 'Aluno';
+  const turma = profile?.school_year || '9C';
 
   return (
     <aside className="sidebar">

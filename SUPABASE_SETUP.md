@@ -49,12 +49,12 @@ Isso cria:
 **No SQL Editor, execute:**
 
 ```sql
-update profiles set role = 'admin' where id = 'seu-uuid-aqui';
+update profiles set is_admin = true where id = 'seu-uuid-aqui';
 ```
 
 **Exemplo real:**
 ```sql
-update profiles set role = 'admin' where id = '550e8400-e29b-41d4-a716-446655440000';
+update profiles set is_admin = true where id = '550e8400-e29b-41d4-a716-446655440000';
 ```
 
 ✅ Pronto! Agora você é admin e verá "Painel Admin" na sidebar.
@@ -170,10 +170,13 @@ Após criar conta e configurar notas:
 ```
 profiles (usuário)
 ├─ id (UUID)
-├─ full_name
-├─ turma
-├─ role (student | admin | teacher)
-└─ created_at
+├─ email
+├─ name
+├─ school_year (ex: 9C)
+├─ plan (free | premium)
+├─ last_password_change
+├─ created_at
+└─ is_admin (boolean)
 
 subjects (matérias) — 11 no seed
 ├─ id (UUID)

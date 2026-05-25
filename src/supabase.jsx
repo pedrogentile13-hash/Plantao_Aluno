@@ -34,10 +34,10 @@ async function authSignIn(email, password) {
 }
 window.authSignIn = authSignIn;
 
-async function authSignUp(email, password, fullName, turma) {
+async function authSignUp(email, password, fullName, schoolYear) {
   const { data, error } = await db.auth.signUp({
     email, password,
-    options: { data: { full_name: fullName, turma } }
+    options: { data: { full_name: fullName, turma: schoolYear } }
   });
   if (error) throw error;
   return data;

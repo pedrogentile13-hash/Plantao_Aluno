@@ -1,6 +1,6 @@
 function AdminScreen({ onNav, isMobile, userId, profile }) {
   // ⚠️ Bloqueia acesso se não for admin
-  if (!userId || !profile || profile.role !== 'admin') {
+  if (!userId || !profile || profile.is_admin !== true) {
     return (
       <div className="main-pad anim-fade" style={{ display: 'grid', placeItems: 'center', minHeight: '100%' }}>
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
