@@ -16,24 +16,51 @@ const SUBJECTS = [
 
 const BIMESTRES = ["1º", "2º", "3º", "4º"];
 
-// modules per bimestre × subject (now loaded from Supabase)
+// modules per bimestre × subject (loaded from Supabase modules table)
 const MODULES = {
-  "1º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
+  "1º": { port: [{ type: "resumo", title: "Carregando...", sub: "Aguarde os dados do servidor", status: "soon" }], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
   "2º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
   "3º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
   "4º": { port: [], mat: [], hist: [], geo: [], ing: [], bio: [], fis: [], qui: [], fin: [], prod: [], tcc: [] },
 };
 
-// boletim (now loaded from Supabase notas table)
-const BOLETIM = [];
+// boletim (loaded from Supabase notas table, seed fallback for UI initialization)
+const BOLETIM = [
+  { disc: "Português",       prof: "Prof. Português",   notas: [null, null, null, null] },
+  { disc: "Matemática",      prof: "Prof. Matemática",  notas: [null, null, null, null] },
+  { disc: "História",        prof: "Prof. História",    notas: [null, null, null, null] },
+  { disc: "Geografia",       prof: "Prof. Geografia",   notas: [null, null, null, null] },
+  { disc: "Inglês",          prof: "Prof. Inglês",      notas: [null, null, null, null] },
+  { disc: "Biologia",        prof: "Prof. Biologia",    notas: [null, null, null, null] },
+  { disc: "Física",          prof: "Prof. Física",      notas: [null, null, null, null] },
+  { disc: "Química",         prof: "Prof. Química",     notas: [null, null, null, null] },
+  { disc: "Educação Financeira", prof: "Prof. Educação Financeira", notas: [null, null, null, null] },
+  { disc: "Produção Textual",    prof: "Prof. Produção Textual",    notas: [null, null, null, null] },
+  { disc: "Iniciação Científica", prof: "Prof. Iniciação Científica", notas: [null, null, null, null] },
+];
 
-// conquistas (now loaded from Supabase conquistas_desbloqueadas table)
-const CONQUISTAS = [];
+// conquistas (loaded from Supabase conquistas_desbloqueadas table, seed reference)
+const CONQUISTAS = [
+  { id: "first",    title: "Primeira Largada",       desc: "Concluiu o primeiro simulado",       tier: "bronze" },
+  { id: "streak3",  title: "Sequência de 3",         desc: "3 dias estudando em sequência",      tier: "bronze" },
+  { id: "media9",   title: "Média 9.0+",             desc: "Alcançou média 9 ou maior no bimestre", tier: "prata"  },
+  { id: "perfect",  title: "Acerto Perfeito",        desc: "Acertou 100% em um simulado",        tier: "ouro"   },
+  { id: "all1bi",   title: "Bimestre Completo",      desc: "Concluiu todos os resumos do 1º bi", tier: "prata"  },
+  { id: "hist",     title: "Historiador",            desc: "5 simulados de História em sequência", tier: "prata"  },
+  { id: "fisica",   title: "Cinético",               desc: "Acerte 80%+ em Física por 3 vezes",  tier: "ouro"   },
+  { id: "leitor",   title: "Leitor Voraz",           desc: "Leia 10 resumos completos",          tier: "prata" },
+  { id: "polimata", title: "Polímata",               desc: "Conquiste 'Acerto Perfeito' em 5 matérias", tier: "ouro" },
+  { id: "diamante", title: "Diamante",               desc: "Média 10 em todo o ano letivo",      tier: "diamante" },
+];
 
-// questões (now loaded from Supabase questoes table)
-const QUESTOES = [];
+// questões (now loaded from Supabase questoes table, seed fallback)
+const QUESTOES = [
+  { d: "F", q: "Carregando questões do servidor...", alts: ["Aguarde", "Carregando", "Carregando", "Carregando"], correct: 0 },
+];
 
-// performance history (now loaded from Supabase perf_history table)
-const PERF_HISTORY = [];
+// performance history (loaded from Supabase perf_history table)
+const PERF_HISTORY = [
+  { id: 1, data: "hoje", disc: "Português", nota: 0, total: 0, acertos: 0, dif: { F: [0,0], M: [0,0], D: [0,0] } },
+];
 
 Object.assign(window, { SUBJECTS, BIMESTRES, MODULES, BOLETIM, CONQUISTAS, QUESTOES, PERF_HISTORY });
