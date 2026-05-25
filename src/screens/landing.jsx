@@ -255,7 +255,7 @@ function LandingScreen({ onEnter, onNav, isMobile }) {
         <div className="hero-stats">
           <div className="card-pop"><div className="v">11</div><div className="l">Matérias</div></div>
           <div className="card-pop"><div className="v">4</div><div className="l">Bimestres</div></div>
-          <div className="card-pop"><div className="v">120<sup style={{ fontSize: 24, color: "var(--ink-mute)" }}>+</sup></div><div className="l">Questões</div></div>
+          <div className="card-pop"><div className="v">—</div><div className="l">Questões</div></div>
           <div className="card-pop" style={{ background: "var(--accent)", borderColor: "var(--ink)" }}>
             <div className="v" style={{ color: "var(--accent-ink)" }}>0<sup style={{ fontSize: 22 }}>R$</sup></div>
             <div className="l" style={{ color: "var(--accent-ink)" }}>Pra sempre</div>
@@ -273,17 +273,8 @@ function LandingScreen({ onEnter, onNav, isMobile }) {
               Peso por dificuldade (1, 2 e 3 pontos), correção na hora, nota de 0 a 10 e revisão questão a questão. Dá pra entender por que errou.
             </p>
             <div className="preview-card">
-              <div className="row">
-                <span>SIMULADO · O Médico e o Monstro</span>
-                <span>30 questões</span>
-              </div>
-              <div className="row muted">
-                <span>F · 8 itens</span><span>M · 15 itens</span><span>D · 7 itens</span>
-              </div>
-              <div className="bar"><i style={{ width: "67%" }} /></div>
-              <div className="row muted">
-                <span>Última nota</span>
-                <span style={{ color: "var(--primary)" }}>8.4 / 10</span>
+              <div className="row" style={{ color: "var(--ink-mute)" }}>
+                <span>Aguardando conteúdo do servidor...</span>
               </div>
             </div>
             <div className="feat-foot">
@@ -317,14 +308,8 @@ function LandingScreen({ onEnter, onNav, isMobile }) {
               Você lança a nota de cada prova e o sistema cuida da média ponderada por peso e bimestre. Final do ano você já sabe se passou.
             </p>
             <div className="preview-card">
-              <div className="row" style={{ color: "var(--ink)" }}>
-                <span>BOLETIM · 2026 · 9C</span>
-                <span style={{ color: "var(--ok)" }}>APROVADO</span>
-              </div>
-              <div className="row"><span>História</span><span>PB 9.5 · Q 10 · VA 9.7</span></div>
-              <div className="row"><span>Inglês</span><span>PB 9.5 · Q 10 · VA 9.4</span></div>
-              <div className="row" style={{ color: "var(--primary)" }}>
-                <span>Média geral</span><span style={{ fontWeight: 800 }}>9.2</span>
+              <div className="row" style={{ color: "var(--ink-mute)" }}>
+                <span>Suas notas aparecerão aqui...</span>
               </div>
             </div>
           </article>
