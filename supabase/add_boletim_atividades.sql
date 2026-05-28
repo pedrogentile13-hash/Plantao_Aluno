@@ -35,3 +35,28 @@ create policy "boletim_atividades_rows: admin write"
   using (public.is_admin());
 
 -- ✅ Pronto! Tabela criada. A app já busca dessa tabela automaticamente.
+
+-- ============================================================
+-- Após importar CSV na tabela boletim_stage, execute:
+-- ============================================================
+insert into public.boletim_atividades_rows
+  (user_id, year_id, subject, bimestre, type, name, description, nota, nota_maxima, peso, date, created_at)
+select
+  p.id,
+  s.year_id::int,
+  s.subject,
+  s.bimestre::int,
+  s.type,
+  s.name,
+  s.description,
+  s.nota::numeric,
+  s.nota_maxima::numeric,
+  s.peso::numeric,
+  nullif(s.date, '')::date,
+  nullif(s.created_at, '')::timestamptz
+from public.boletim_stage s
+join public.profiles p on p.email = (
+  select email from public.profiles where id::text = s.user_id
+);
+
+drop table public.boletim_stage;
