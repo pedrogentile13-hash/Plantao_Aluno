@@ -107,6 +107,22 @@ function useNotas(userId) {
 }
 window.useNotas = useNotas;
 
+function useAtividades(userId) {
+  const [atividades, setAtividades] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!userId) { setAtividades(null); return; }
+    db.from("boletim_atividades_rows")
+      .select("*")
+      .eq("user_id", userId)
+      .order("bimestre")
+      .then(({ data }) => { if (data) setAtividades(data); });
+  }, [userId]);
+
+  return atividades;
+}
+window.useAtividades = useAtividades;
+
 // ── Conquistas ──────────────────────────────────────────────
 
 function useConquistasDesbloqueadas(userId) {

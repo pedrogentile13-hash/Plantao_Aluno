@@ -114,7 +114,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- 7. Notas / Boletim
+-- 7. Notas / Boletim (legado)
 create table public.notas (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
@@ -128,6 +128,23 @@ create table public.notas (
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   unique(user_id, subject_id, bimestre)
+);
+
+-- 7b. Atividades do Boletim (estrutura nova — uma linha por atividade)
+create table public.boletim_atividades_rows (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  year_id int,
+  subject text not null,
+  bimestre int references public.bimestres(id) on delete cascade not null,
+  type text not null check (type in ('prova_bimestral', 'qualitativa', 'va')),
+  name text not null,
+  description text,
+  nota numeric(5,2) not null,
+  nota_maxima numeric(5,2) not null default 10,
+  peso numeric(5,2) not null default 1,
+  date date,
+  created_at timestamptz default now()
 );
 
 -- 8. Resultados de simulados
@@ -197,6 +214,7 @@ alter table public.notas enable row level security;
 alter table public.simulado_results enable row level security;
 alter table public.perf_history enable row level security;
 alter table public.conquistas enable row level security;
+alter table public.boletim_atividades_rows enable row level security;
 alter table public.conquistas_desbloqueadas enable row level security;
 
 -- Policies
@@ -222,6 +240,14 @@ create policy "questoes: public read"
 
 create policy "conquistas: public read"
   on public.conquistas for select using (true);
+
+create policy "boletim_atividades_rows: own select"
+  on public.boletim_atividades_rows for select
+  using (auth.uid() = user_id or public.is_admin());
+
+create policy "boletim_atividades_rows: admin write"
+  on public.boletim_atividades_rows for all
+  using (public.is_admin());
 
 create policy "notas: own select"
   on public.notas for select
@@ -261,6 +287,7 @@ create policy "conquistas_desbloqueadas: own insert"
 
 create index idx_modules_subject_bimestre on public.modules(subject_id, bimestre);
 create index idx_questoes_subject_bimestre on public.questoes(subject_id, bimestre);
+create index idx_boletim_atividades_user on public.boletim_atividades_rows(user_id, bimestre);
 create index idx_notas_user_subject_bimestre on public.notas(user_id, subject_id, bimestre);
 create index idx_simulado_results_user_subject on public.simulado_results(user_id, subject_id);
 create index idx_perf_history_user_subject_date on public.perf_history(user_id, subject_id, data_point_date);

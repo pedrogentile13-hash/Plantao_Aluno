@@ -61,38 +61,56 @@ const bimAverage = (bim) => {
   return sumPN / sumP;
 };
 
-// Transform flat Supabase notas rows into the rich seedBoletim() structure
-const buildBoletimFromNotas = (notasRows) => {
-  const base = seedBoletim();
-  notasRows.forEach(row => {
-    const disc = row.subject;
-    const bi   = row.bimestre - 1;
-    if (!base[disc]) return;
-    const pb = row.prova_bim ?? null;
-    const q  = row.quizzes_media ?? null;
-    const va = row.visto_atividades ?? null;
-    base[disc].bims[bi] = {
-      PB: pb != null ? [{ id: `pb-sup-${disc}-${bi}`, nome: `PB - ${disc.slice(0,4)}`, desc: "", nota: pb, max: 10, peso: 10, data: row.created_at?.slice(0,10) || "—" }] : [],
-      Q:  q  != null ? [{ id: `q-sup-${disc}-${bi}`,  nome: "Qualitativa",             desc: "", nota: q,  max: 10, peso: 1,  data: row.created_at?.slice(0,10) || "—" }] : [],
-      VA: va != null ? [{ id: `va-sup-${disc}-${bi}`,  nome: `VA - ${disc.slice(0,4).toUpperCase()}`, desc: "", nota: va, max: 10, peso: 5, data: row.created_at?.slice(0,10) || "—" }] : [],
-    };
+// Mapeia type da tabela para chave de categoria
+const TYPE_TO_CAT = {
+  prova_bimestral: "PB",
+  qualitativa:     "Q",
+  va:              "VA",
+};
+
+// Transform flat boletim_atividades_rows into the rich structure used pela UI
+const buildBoletimFromAtividades = (rows) => {
+  const base = {};
+  BOLETIM.forEach(row => {
+    base[row.disc] = { prof: row.prof, bims: { 0: {PB:[],Q:[],VA:[]}, 1: {PB:[],Q:[],VA:[]}, 2: {PB:[],Q:[],VA:[]}, 3: {PB:[],Q:[],VA:[]} } };
   });
+
+  rows.forEach(row => {
+    const disc = row.subject;
+    const bi   = (row.bimestre ?? 1) - 1;
+    const cat  = TYPE_TO_CAT[row.type] || "VA";
+
+    if (!base[disc]) {
+      base[disc] = { prof: "—", bims: { 0: {PB:[],Q:[],VA:[]}, 1: {PB:[],Q:[],VA:[]}, 2: {PB:[],Q:[],VA:[]}, 3: {PB:[],Q:[],VA:[]} } };
+    }
+
+    base[disc].bims[bi][cat].push({
+      id:   row.id,
+      nome: row.name,
+      desc: row.description || "",
+      nota: Number(row.nota),
+      max:  Number(row.nota_maxima) || 10,
+      peso: Number(row.peso) || 1,
+      data: row.date || row.created_at?.slice(0, 10) || "—",
+    });
+  });
+
   return base;
 };
 
 function BoletimScreen({ onNav, isMobile, userId }) {
-  const notasRows = useNotas(userId);
+  const atividades = useAtividades(userId);
 
   const [tab, setTab] = React.useState("geral");   // geral | detalhado | desempenho
   const [year, setYear] = React.useState("2026");
   const [data, setData] = React.useState(() => seedBoletim());
 
-  // Quando chegam notas reais do Supabase, substitui os dados mock
+  // Quando chegam atividades reais do Supabase, substitui os dados mock
   React.useEffect(() => {
-    if (notasRows && notasRows.length > 0) {
-      setData(buildBoletimFromNotas(notasRows));
+    if (atividades && atividades.length > 0) {
+      setData(buildBoletimFromAtividades(atividades));
     }
-  }, [notasRows]);
+  }, [atividades]);
 
   // visao geral state: clicking disciplina opens "manage activities" overlay
   const [openDisc, setOpenDisc] = React.useState(null); // string disc name
