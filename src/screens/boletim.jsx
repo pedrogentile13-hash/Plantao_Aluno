@@ -99,10 +99,10 @@ const buildBoletimFromAtividades = (rows) => {
 };
 
 function BoletimScreen({ onNav, isMobile, userId }) {
-  const atividades = useAtividades(userId);
-
   const [tab, setTab] = React.useState("geral");   // geral | detalhado | desempenho
   const [year, setYear] = React.useState("2026");
+
+  const atividades = useAtividades(userId, year);
   const [data, setData] = React.useState(() => seedBoletim());
 
   // Quando chegam atividades reais do Supabase, substitui os dados mock

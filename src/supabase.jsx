@@ -107,17 +107,20 @@ function useNotas(userId) {
 }
 window.useNotas = useNotas;
 
-function useAtividades(userId) {
+function useAtividades(userId, year) {
   const [atividades, setAtividades] = React.useState(null);
 
   React.useEffect(() => {
     if (!userId) { setAtividades(null); return; }
-    db.from("boletim_atividades_rows")
+    let q = db.from("boletim_atividades_rows")
       .select("*")
       .eq("user_id", userId)
-      .order("bimestre")
-      .then(({ data }) => { if (data) setAtividades(data); });
-  }, [userId]);
+      .order("bimestre");
+    if (year) {
+      q = q.gte("date", `${year}-01-01`).lte("date", `${year}-12-31`);
+    }
+    q.then(({ data }) => { if (data) setAtividades(data); });
+  }, [userId, year]);
 
   return atividades;
 }
