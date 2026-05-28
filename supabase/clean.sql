@@ -169,6 +169,22 @@ create table public.conquistas_desbloqueadas (
 );
 
 -- ============================================================
+-- Função helper para checar admin (security definer = bypassa RLS)
+-- ============================================================
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles where id = auth.uid() and is_admin = true
+  );
+$$;
+
+-- ============================================================
 -- Row Level Security
 -- ============================================================
 
@@ -186,9 +202,7 @@ alter table public.conquistas_desbloqueadas enable row level security;
 -- Policies
 create policy "profiles: own read"
   on public.profiles for select
-  using (auth.uid() = id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
-  ));
+  using (auth.uid() = id or public.is_admin());
 
 create policy "profiles: own update"
   on public.profiles for update
@@ -211,21 +225,15 @@ create policy "conquistas: public read"
 
 create policy "notas: own select"
   on public.notas for select
-  using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
-  ));
+  using (auth.uid() = user_id or public.is_admin());
 
 create policy "notas: teacher write"
   on public.notas for all
-  using (exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
-  ));
+  using (public.is_admin());
 
 create policy "simulado_results: own select"
   on public.simulado_results for select
-  using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
-  ));
+  using (auth.uid() = user_id or public.is_admin());
 
 create policy "simulado_results: own insert"
   on public.simulado_results for insert
@@ -233,9 +241,7 @@ create policy "simulado_results: own insert"
 
 create policy "perf_history: own select"
   on public.perf_history for select
-  using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
-  ));
+  using (auth.uid() = user_id or public.is_admin());
 
 create policy "perf_history: own insert"
   on public.perf_history for insert
@@ -243,9 +249,7 @@ create policy "perf_history: own insert"
 
 create policy "conquistas_desbloqueadas: own select"
   on public.conquistas_desbloqueadas for select
-  using (auth.uid() = user_id or exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true
-  ));
+  using (auth.uid() = user_id or public.is_admin());
 
 create policy "conquistas_desbloqueadas: own insert"
   on public.conquistas_desbloqueadas for insert
