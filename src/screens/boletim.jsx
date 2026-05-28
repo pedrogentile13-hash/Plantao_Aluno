@@ -128,28 +128,45 @@ function BoletimScreen({ onNav, isMobile, userId }) {
 
   const discList = Object.keys(data).sort();
 
-  const addActivity = ({ disc, bim, cat, activity }) => {
-    setData(prev => {
-      const next = { ...prev };
-      const arr = next[disc].bims[bim][cat].slice();
-      if (activity.id && arr.find(a => a.id === activity.id)) {
-        // edit
-        const idx = arr.findIndex(a => a.id === activity.id);
-        arr[idx] = activity;
+  const isUUID = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  const addActivity = async ({ disc, bim, cat, activity }) => {
+    try {
+      let finalId = activity.id;
+      if (activity.id && isUUID(activity.id)) {
+        await updateAtividade(activity.id, activity);
       } else {
-        arr.push({ ...activity, id: `${cat}-${disc}-${bim}-${Date.now()}` });
+        const saved = await saveAtividade(userId, { subject: disc, bimestre: bim + 1, cat, ...activity });
+        finalId = saved.id;
       }
-      next[disc] = { ...next[disc], bims: { ...next[disc].bims, [bim]: { ...next[disc].bims[bim], [cat]: arr } } };
-      return next;
-    });
+      setData(prev => {
+        const next = { ...prev };
+        const arr = next[disc].bims[bim][cat].slice();
+        if (activity.id && arr.find(a => a.id === activity.id)) {
+          arr[arr.findIndex(a => a.id === activity.id)] = { ...activity, id: finalId };
+        } else {
+          arr.push({ ...activity, id: finalId });
+        }
+        next[disc] = { ...next[disc], bims: { ...next[disc].bims, [bim]: { ...next[disc].bims[bim], [cat]: arr } } };
+        return next;
+      });
+    } catch (err) {
+      alert("Erro ao salvar atividade: " + err.message);
+    }
   };
-  const removeActivity = ({ disc, bim, cat, id }) => {
-    setData(prev => {
-      const next = { ...prev };
-      const arr = next[disc].bims[bim][cat].filter(a => a.id !== id);
-      next[disc] = { ...next[disc], bims: { ...next[disc].bims, [bim]: { ...next[disc].bims[bim], [cat]: arr } } };
-      return next;
-    });
+
+  const removeActivity = async ({ disc, bim, cat, id }) => {
+    try {
+      if (isUUID(id)) await deleteAtividade(id);
+      setData(prev => {
+        const next = { ...prev };
+        const arr = next[disc].bims[bim][cat].filter(a => a.id !== id);
+        next[disc] = { ...next[disc], bims: { ...next[disc].bims, [bim]: { ...next[disc].bims[bim], [cat]: arr } } };
+        return next;
+      });
+    } catch (err) {
+      alert("Erro ao remover atividade: " + err.message);
+    }
   };
 
   return (

@@ -245,9 +245,17 @@ create policy "boletim_atividades_rows: own select"
   on public.boletim_atividades_rows for select
   using (auth.uid() = user_id or public.is_admin());
 
-create policy "boletim_atividades_rows: admin write"
-  on public.boletim_atividades_rows for all
-  using (public.is_admin());
+create policy "boletim_atividades_rows: own insert"
+  on public.boletim_atividades_rows for insert
+  with check (auth.uid() = user_id);
+
+create policy "boletim_atividades_rows: own update"
+  on public.boletim_atividades_rows for update
+  using (auth.uid() = user_id);
+
+create policy "boletim_atividades_rows: own delete"
+  on public.boletim_atividades_rows for delete
+  using (auth.uid() = user_id or public.is_admin());
 
 create policy "notas: own select"
   on public.notas for select

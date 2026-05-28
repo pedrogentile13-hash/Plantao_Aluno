@@ -231,6 +231,42 @@ function usePerfHistory(userId, subjectId) {
 }
 window.usePerfHistory = usePerfHistory;
 
+// ── Boletim Write ───────────────────────────────────────────
+
+const CAT_TO_TYPE = { PB: "prova_bimestral", Q: "qualitativa", VA: "va" };
+
+async function saveAtividade(userId, { subject, bimestre, cat, nome, desc, nota, max, peso, data: date }) {
+  const { data, error } = await db.from("boletim_atividades_rows").insert({
+    user_id: userId,
+    subject,
+    bimestre,
+    type: CAT_TO_TYPE[cat] || cat,
+    name: nome,
+    description: desc || null,
+    nota,
+    nota_maxima: max,
+    peso,
+    date: date || new Date().toISOString().split("T")[0],
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+window.saveAtividade = saveAtividade;
+
+async function updateAtividade(id, { nome, desc, nota, max, peso, data: date }) {
+  const { error } = await db.from("boletim_atividades_rows").update({
+    name: nome, description: desc || null, nota, nota_maxima: max, peso, date: date || null,
+  }).eq("id", id);
+  if (error) throw error;
+}
+window.updateAtividade = updateAtividade;
+
+async function deleteAtividade(id) {
+  const { error } = await db.from("boletim_atividades_rows").delete().eq("id", id);
+  if (error) throw error;
+}
+window.deleteAtividade = deleteAtividade;
+
 // ── Write Functions ──────────────────────────────────────────
 
 async function savePerfHistory(userId, subjectId, valor, tipo) {
