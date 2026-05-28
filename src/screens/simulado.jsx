@@ -1,4 +1,20 @@
-function SimuladoScreen({ onFinish, onExit, isMobile }) {
+function SimuladoScreen({ onFinish, onExit, isMobile, questoes: questoesProp, context }) {
+  const DIF_MAP = { 1: "F", 2: "M", 3: "D" };
+  const QUESTOES_ACTIVE = React.useMemo(() => {
+    if (questoesProp && questoesProp.length > 0) {
+      return questoesProp.map(q => ({
+        d: DIF_MAP[q.dificuldade] || "F",
+        q: q.enunciado,
+        alts: (q.opcoes || []).map(o => o.text),
+        correct: (q.opcoes || []).findIndex(o => o.id === q.resposta_correta),
+      }));
+    }
+    return QUESTOES;
+  }, [questoesProp]);
+
+  const subjName = context?.subj ? (SUBJECTS.find(s => s.id === context.subj)?.name || "Simulado") : "Simulado";
+  const bimLabel = context?.bim ? context.bim + " bimestre" : "";
+
   const [idx, setIdx] = React.useState(0);
   const [answers, setAnswers] = React.useState({});
   const [seconds, setSeconds] = React.useState(0);
@@ -8,8 +24,8 @@ function SimuladoScreen({ onFinish, onExit, isMobile }) {
     return () => clearInterval(t);
   }, []);
 
-  const q = QUESTOES[idx];
-  const total = QUESTOES.length;
+  const q = QUESTOES_ACTIVE[idx];
+  const total = QUESTOES_ACTIVE.length;
   const answered = Object.keys(answers).length;
   const pct = (answered / total) * 100;
 
@@ -25,7 +41,7 @@ function SimuladoScreen({ onFinish, onExit, isMobile }) {
     let acertos = 0, pts = 0, max = 0;
     const dif = { F: [0, 0], M: [0, 0], D: [0, 0] };
     const weight = { F: 1, M: 2, D: 3 };
-    QUESTOES.forEach((q, i) => {
+    QUESTOES_ACTIVE.forEach((q, i) => {
       const right = answers[i] === q.correct;
       dif[q.d][1] += 1;
       max += weight[q.d];
@@ -135,8 +151,8 @@ function SimuladoScreen({ onFinish, onExit, isMobile }) {
             <Icon name="x" size={20}/>
           </button>
           <div>
-            <div className="mark">Simulado <em>·</em> O Médico e o Monstro</div>
-            <div className="muted f-mono" style={{ fontSize: 11, letterSpacing: "0.06em", marginTop: 2 }}>PORTUGUÊS · 1º BIMESTRE</div>
+            <div className="mark">Simulado <em>·</em> {subjName}</div>
+            <div className="muted f-mono" style={{ fontSize: 11, letterSpacing: "0.06em", marginTop: 2 }}>{bimLabel.toUpperCase()}</div>
           </div>
         </div>
         <div className="status">
@@ -201,7 +217,7 @@ function SimuladoScreen({ onFinish, onExit, isMobile }) {
         <aside className="sim-side">
           <h4>Mapa das questões</h4>
           <div className="q-grid">
-            {QUESTOES.map((_, i) => (
+            {QUESTOES_ACTIVE.map((_, i) => (
               <button key={i}
                 className={(answers[i] != null ? "done " : "") + (i === idx ? "current" : "")}
                 onClick={() => setIdx(i)}>
@@ -213,11 +229,11 @@ function SimuladoScreen({ onFinish, onExit, isMobile }) {
           <div style={{ marginTop: "auto", paddingTop: 18, borderTop: "1px solid var(--rule)" }}>
             <h4>Pontuação possível</h4>
             <div className="f-mono" style={{ fontSize: 12, lineHeight: 1.7, color: "var(--ink-soft)" }}>
-              <div>{QUESTOES.filter(q => q.d === "F").length} fáceis × 1pt</div>
-              <div>{QUESTOES.filter(q => q.d === "M").length} médias × 2pts</div>
-              <div>{QUESTOES.filter(q => q.d === "D").length} difíceis × 3pts</div>
+              <div>{QUESTOES_ACTIVE.filter(q => q.d === "F").length} fáceis × 1pt</div>
+              <div>{QUESTOES_ACTIVE.filter(q => q.d === "M").length} médias × 2pts</div>
+              <div>{QUESTOES_ACTIVE.filter(q => q.d === "D").length} difíceis × 3pts</div>
               <div style={{ marginTop: 8, color: "var(--ink)", fontWeight: 600 }}>
-                Máx · {QUESTOES.reduce((a, q) => a + ({ F: 1, M: 2, D: 3 }[q.d]), 0)} pts
+                Máx · {QUESTOES_ACTIVE.reduce((a, q) => a + ({ F: 1, M: 2, D: 3 }[q.d]), 0)} pts
               </div>
             </div>
           </div>

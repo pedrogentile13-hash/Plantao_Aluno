@@ -9,6 +9,7 @@ function App() {
   const [vp, setVp] = React.useState("desktop");
   const [subjectModal, setSubjectModal] = React.useState(null); // { subj, bim }
   const [simuladoResult, setSimuladoResult] = React.useState(null);
+  const [simuladoContext, setSimuladoContext] = React.useState(null);
 
   // Redireciona para a tela correta após resolver o estado de auth
   React.useEffect(() => {
@@ -37,8 +38,9 @@ function App() {
     onNav("landing");
   };
 
-  const startSimulado = () => {
+  const startSimulado = (questoes, ctx) => {
     setSimuladoResult(null);
+    setSimuladoContext({ questoes: questoes || [], ...(ctx || {}) });
     setScreen("simulado");
   };
 
@@ -87,6 +89,8 @@ function App() {
             {screen === "simulado"   && (
               <SimuladoScreen
                 isMobile={isMobile}
+                questoes={simuladoContext?.questoes}
+                context={simuladoContext}
                 onExit={() => onNav("resumos")}
                 onFinish={(result) => { setSimuladoResult(result); setScreen("resultado"); }}
                 userId={user?.id}
@@ -114,8 +118,10 @@ function App() {
           <SubjectModal
             subjectId={subjectModal.subj}
             bim={subjectModal.bim}
+            profile={profile}
+            userId={user?.id}
             onClose={() => setSubjectModal(null)}
-            onStartSimulado={() => { setSubjectModal(null); startSimulado(); }}
+            onStartSimulado={(questoes) => { setSubjectModal(null); startSimulado(questoes, subjectModal); }}
             onNav={onNav}
           />
         )}

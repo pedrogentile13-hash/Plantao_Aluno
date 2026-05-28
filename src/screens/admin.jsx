@@ -40,11 +40,90 @@ function AdminScreen({ onNav, isMobile, userId, profile }) {
 
   const [subj, setSubj] = React.useState("port");
   const [bim, setBim] = React.useState("1º");
-  const [tab, setTab] = React.useState("resumo"); // resumo | simulado | modulos
+  const [tab, setTab] = React.useState("resumo"); // resumo | simulado | questoes | modulos
   const [formula, setFormula] = React.useState("5F+5M+5D");
   const [title, setTitle] = React.useState("");
   const [desc, setDesc] = React.useState("");
   const [body, setBody] = React.useState("# Título\n## Subtítulo\n\n**Negrito**, *itálico*\n\n- Item 1\n- Item 2");
+  const [importText, setImportText] = React.useState("");
+  const [parsedQuestoes, setParsedQuestoes] = React.useState(null);
+  const [importStatus, setImportStatus] = React.useState("");
+  const [uploading, setUploading] = React.useState(false);
+
+  const bimNum = parseInt(bim) || 1;
+
+  const parseQuestoesText = (text) => {
+    const blocks = text.trim().split(/\n\s*\n/).filter(b => b.trim());
+    const result = [];
+    for (const block of blocks) {
+      const lines = block.trim().split("\n").map(l => l.trim()).filter(Boolean);
+      if (!lines.length) continue;
+      const difMatch = lines[0].match(/^\[([FMD])\]\s*(.+)/i);
+      if (!difMatch) continue;
+      const dif = difMatch[1].toUpperCase();
+      const enunciado = difMatch[2].trim();
+      const opcoes = [];
+      let correta = "a";
+      for (const line of lines.slice(1)) {
+        const altMatch = line.match(/^([A-D])\)\s*(.+)/i);
+        if (altMatch) opcoes.push({ id: altMatch[1].toLowerCase(), text: altMatch[2].trim() });
+        const rMatch = line.match(/^R:\s*([A-D])/i);
+        if (rMatch) correta = rMatch[1].toLowerCase();
+      }
+      if (opcoes.length >= 2) {
+        result.push({ enunciado, opcoes, resposta_correta: correta, dificuldade: { F: 1, M: 2, D: 3 }[dif] || 1 });
+      }
+    }
+    return result;
+  };
+
+  const handleParseImport = () => {
+    const q = parseQuestoesText(importText);
+    setParsedQuestoes(q);
+    setImportStatus(q.length > 0 ? `${q.length} questão(ões) detectada(s). Confirme para salvar.` : "Nenhuma questão válida encontrada.");
+  };
+
+  const handleSaveQuestoes = async () => {
+    if (!parsedQuestoes || parsedQuestoes.length === 0) return;
+    setImportStatus("Salvando...");
+    try {
+      const count = await importQuestoesDB(parsedQuestoes, subj, bimNum);
+      setImportStatus(`✅ ${count} questão(ões) importada(s) com sucesso!`);
+      setImportText("");
+      setParsedQuestoes(null);
+    } catch (err) {
+      setImportStatus("Erro: " + err.message);
+    }
+  };
+
+  const handleDeleteAllQuestoes = async () => {
+    if (!confirm(`Apagar TODAS as questões de ${SUBJECTS.find(s => s.id === subj)?.name} · ${bim} bimestre?`)) return;
+    try {
+      await deleteQuestoesDB(subj, bimNum);
+      setImportStatus("✅ Questões apagadas.");
+      setParsedQuestoes(null);
+    } catch (err) {
+      setImportStatus("Erro: " + err.message);
+    }
+  };
+
+  // Resumo PDF upload
+  const handleResumoPDF = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !title.trim()) { alert("Preencha o título primeiro."); e.target.value = ""; return; }
+    setUploading(true);
+    try {
+      const pdfUrl = await uploadResumoPDF(file, subj, bimNum);
+      await saveResumoDB({ subjectSlug: subj, bimestre: bimNum, title, description: desc, pdfUrl, userId });
+      setTitle(""); setDesc("");
+      alert(`✅ PDF "${file.name}" salvo com sucesso!`);
+    } catch (err) {
+      alert("Erro no upload: " + err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
 
   // parse formula
   const parsed = (() => {
@@ -225,9 +304,9 @@ function AdminScreen({ onNav, isMobile, userId, profile }) {
                 </span>
               </h3>
               <div className="ad-tabs">
-                <button className={tab === "resumo" ? "on" : ""} onClick={() => setTab("resumo")}>Resumo</button>
+                <button className={tab === "resumo" ? "on" : ""} onClick={() => setTab("resumo")}>Resumo PDF</button>
+                <button className={tab === "questoes" ? "on" : ""} onClick={() => setTab("questoes")}>Questões</button>
                 <button className={tab === "simulado" ? "on" : ""} onClick={() => setTab("simulado")}>Simulado</button>
-                <button className={tab === "modulos" ? "on" : ""} onClick={() => setTab("modulos")}>Cadastrados</button>
               </div>
             </div>
 
@@ -256,11 +335,97 @@ function AdminScreen({ onNav, isMobile, userId, profile }) {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <button className="btn btn-primary">Salvar módulo</button>
-                  <button className="btn btn-ghost">Limpar</button>
-                  <button className="btn btn-ghost" style={{ marginLeft: "auto" }}>
-                    <Icon name="doc" size={14}/> Upload PDF
+                <div className="flex gap-3" style={{ flexWrap: "wrap" }}>
+                  <label className={"btn btn-primary" + (uploading ? " disabled" : "")} style={{ cursor: "pointer" }}>
+                    <Icon name="doc" size={14}/> {uploading ? "Enviando..." : "Upload PDF"}
+                    <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handleResumoPDF} disabled={uploading} />
+                  </label>
+                  <button className="btn btn-ghost" onClick={() => { setTitle(""); setDesc(""); }}>Limpar</button>
+                  <div className="muted f-mono" style={{ fontSize: 12, alignSelf: "center" }}>
+                    O PDF será salvo no Supabase Storage (bucket "resumos")
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === "questoes" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ background: "var(--bg)", border: "1px solid var(--rule)", borderRadius: 10, padding: "14px 16px" }}>
+                  <div className="f-mono" style={{ fontSize: 11, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>Formato de importação</div>
+                  <pre style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, lineHeight: 1.7, color: "var(--ink-soft)", margin: 0, overflowX: "auto" }}>{`[F] Enunciado da questão fácil
+A) Alternativa A
+B) Alternativa B
+C) Alternativa C
+D) Alternativa D
+R: A
+
+[M] Enunciado da questão média
+A) Opção A
+B) Opção B
+C) Opção C
+D) Opção D
+R: C
+
+[D] Enunciado difícil
+A) ... B) ... C) ... D) ...
+R: B`}</pre>
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <label className="field-label" style={{ margin: 0 }}>Cole as questões aqui</label>
+                    <span className="chip f-mono">{SUBJECTS.find(s => s.id === subj)?.name} · {bim} bim</span>
+                  </div>
+                  <textarea
+                    className="md-textarea"
+                    style={{ minHeight: 320, fontFamily: "JetBrains Mono, monospace", fontSize: 13 }}
+                    placeholder={`[F] Qual é a capital do Brasil?\nA) Brasília\nB) São Paulo\nC) Rio de Janeiro\nD) Salvador\nR: A`}
+                    value={importText}
+                    onChange={e => { setImportText(e.target.value); setParsedQuestoes(null); setImportStatus(""); }}
+                  />
+                </div>
+
+                {parsedQuestoes && parsedQuestoes.length > 0 && (
+                  <div style={{ background: "var(--bg)", border: "1px solid var(--rule)", borderRadius: 10, padding: 14 }}>
+                    <div className="f-mono" style={{ fontSize: 11, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+                      Preview · {parsedQuestoes.length} questão(ões)
+                    </div>
+                    {parsedQuestoes.slice(0, 3).map((q, i) => (
+                      <div key={i} style={{ padding: "10px 0", borderTop: i === 0 ? 0 : "1px solid var(--rule)" }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+                          <span className={`chip f-mono`} style={{ fontSize: 10, background: q.dificuldade === 1 ? "oklch(0.62 0.16 148/0.15)" : q.dificuldade === 2 ? "oklch(0.72 0.16 60/0.15)" : "oklch(0.58 0.22 25/0.15)", color: q.dificuldade === 1 ? "oklch(0.42 0.16 148)" : q.dificuldade === 2 ? "oklch(0.45 0.14 60)" : "var(--err)" }}>
+                            {["Fácil", "Médio", "Difícil"][q.dificuldade - 1]}
+                          </span>
+                          <span style={{ fontWeight: 500, fontSize: 14 }}>{q.enunciado}</span>
+                        </div>
+                        <div className="muted f-mono" style={{ fontSize: 11 }}>
+                          {q.opcoes.map(o => `${o.id.toUpperCase()}) ${o.text}`).join(" · ")} · R: {q.resposta_correta.toUpperCase()}
+                        </div>
+                      </div>
+                    ))}
+                    {parsedQuestoes.length > 3 && (
+                      <div className="muted f-mono" style={{ fontSize: 11, marginTop: 8 }}>...e mais {parsedQuestoes.length - 3} questão(ões)</div>
+                    )}
+                  </div>
+                )}
+
+                {importStatus && (
+                  <div className="f-mono" style={{ fontSize: 13, color: importStatus.includes("Erro") ? "var(--err)" : "var(--ok)", padding: "10px 14px", background: "var(--bg)", borderRadius: 8 }}>
+                    {importStatus}
+                  </div>
+                )}
+
+                <div className="flex gap-3" style={{ flexWrap: "wrap" }}>
+                  <button className="btn btn-primary" onClick={handleParseImport} disabled={!importText.trim()}>
+                    Verificar questões
+                  </button>
+                  {parsedQuestoes && parsedQuestoes.length > 0 && (
+                    <button className="btn btn-primary" style={{ background: "var(--ok)", borderColor: "var(--ok)" }} onClick={handleSaveQuestoes}>
+                      <Icon name="check" size={14}/> Salvar {parsedQuestoes.length} questão(ões)
+                    </button>
+                  )}
+                  <button className="btn btn-ghost" style={{ marginLeft: "auto", color: "var(--err)" }} onClick={handleDeleteAllQuestoes}>
+                    <Icon name="trash" size={14}/> Apagar todas
                   </button>
                 </div>
               </div>

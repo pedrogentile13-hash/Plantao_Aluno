@@ -267,6 +267,107 @@ async function deleteAtividade(id) {
 }
 window.deleteAtividade = deleteAtividade;
 
+// ── Resumos (PDFs) ───────────────────────────────────────────
+
+function useResumosDB(subjectSlug, bimestre) {
+  const [resumos, setResumos] = React.useState([]);
+  React.useEffect(() => {
+    if (!subjectSlug || !bimestre) return;
+    db.from("resumos")
+      .select("*")
+      .eq("subject_slug", subjectSlug)
+      .eq("bimestre", parseInt(bimestre) || bimestre)
+      .order("created_at")
+      .then(({ data }) => { if (data) setResumos(data); });
+  }, [subjectSlug, bimestre]);
+  return resumos;
+}
+window.useResumosDB = useResumosDB;
+
+async function uploadResumoPDF(file, subjectSlug, bimestre) {
+  const ext = file.name.split(".").pop();
+  const path = `${subjectSlug}/${bimestre}/${Date.now()}.${ext}`;
+  const { error } = await db.storage.from("resumos").upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data: { publicUrl } } = db.storage.from("resumos").getPublicUrl(path);
+  return publicUrl;
+}
+window.uploadResumoPDF = uploadResumoPDF;
+
+async function saveResumoDB({ subjectSlug, bimestre, title, description, pdfUrl, userId }) {
+  const { data, error } = await db.from("resumos").insert({
+    subject_slug: subjectSlug,
+    bimestre: parseInt(bimestre) || bimestre,
+    title,
+    description: description || null,
+    pdf_url: pdfUrl || null,
+    created_by: userId,
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+window.saveResumoDB = saveResumoDB;
+
+async function deleteResumoDB(id) {
+  const { error } = await db.from("resumos").delete().eq("id", id);
+  if (error) throw error;
+}
+window.deleteResumoDB = deleteResumoDB;
+
+// ── Questões para Simulado ───────────────────────────────────
+
+function useQuestoesSimulado(subjectSlug, bimestre) {
+  const [questoes, setQuestoes] = React.useState([]);
+  React.useEffect(() => {
+    if (!subjectSlug || !bimestre) { setQuestoes([]); return; }
+    db.from("subjects").select("id").eq("slug", subjectSlug).single()
+      .then(({ data: subj }) => {
+        if (!subj) return Promise.resolve({ data: [] });
+        return db.from("questoes")
+          .select("*")
+          .eq("subject_id", subj.id)
+          .eq("bimestre", parseInt(bimestre) || 1)
+          .order("number");
+      })
+      .then(res => { if (res?.data) setQuestoes(res.data); });
+  }, [subjectSlug, bimestre]);
+  return questoes;
+}
+window.useQuestoesSimulado = useQuestoesSimulado;
+
+async function importQuestoesDB(questoes, subjectSlug, bimestre) {
+  const { data: subj } = await db.from("subjects").select("id").eq("slug", subjectSlug).single();
+  if (!subj) throw new Error("Matéria não encontrada: " + subjectSlug);
+  const bim = parseInt(bimestre) || 1;
+  // Get current max number
+  const { data: existing } = await db.from("questoes")
+    .select("number").eq("subject_id", subj.id).eq("bimestre", bim)
+    .order("number", { ascending: false }).limit(1);
+  const startNum = (existing?.[0]?.number || 0) + 1;
+  const rows = questoes.map((q, i) => ({
+    subject_id: subj.id,
+    bimestre: bim,
+    number: startNum + i,
+    enunciado: q.enunciado,
+    opcoes: q.opcoes,
+    resposta_correta: q.resposta_correta,
+    dificuldade: q.dificuldade,
+  }));
+  const { error } = await db.from("questoes").insert(rows);
+  if (error) throw error;
+  return rows.length;
+}
+window.importQuestoesDB = importQuestoesDB;
+
+async function deleteQuestoesDB(subjectSlug, bimestre) {
+  const { data: subj } = await db.from("subjects").select("id").eq("slug", subjectSlug).single();
+  if (!subj) throw new Error("Matéria não encontrada");
+  const { error } = await db.from("questoes")
+    .delete().eq("subject_id", subj.id).eq("bimestre", parseInt(bimestre) || 1);
+  if (error) throw error;
+}
+window.deleteQuestoesDB = deleteQuestoesDB;
+
 // ── Write Functions ──────────────────────────────────────────
 
 async function savePerfHistory(userId, subjectId, valor, tipo) {
