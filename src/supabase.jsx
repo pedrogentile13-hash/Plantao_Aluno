@@ -235,12 +235,13 @@ window.usePerfHistory = usePerfHistory;
 
 const CAT_TO_TYPE = { PB: "prova_bimestral", Q: "qualitativa", VA: "va" };
 
-async function saveAtividade(userId, { subject, bimestre, cat, nome, desc, nota, max, peso, data: date }) {
+async function saveAtividade(userId, { subject, bimestre, cat, subtype, nome, desc, nota, max, peso, data: date }) {
   const { data, error } = await db.from("boletim_atividades_rows").insert({
     user_id: userId,
     subject,
     bimestre,
     type: CAT_TO_TYPE[cat] || cat,
+    subtype: subtype || null,
     name: nome,
     description: desc || null,
     nota,
@@ -253,9 +254,9 @@ async function saveAtividade(userId, { subject, bimestre, cat, nome, desc, nota,
 }
 window.saveAtividade = saveAtividade;
 
-async function updateAtividade(id, { nome, desc, nota, max, peso, data: date }) {
+async function updateAtividade(id, { subtype, nome, desc, nota, max, peso, data: date }) {
   const { error } = await db.from("boletim_atividades_rows").update({
-    name: nome, description: desc || null, nota, nota_maxima: max, peso, date: date || null,
+    name: nome, subtype: subtype || null, description: desc || null, nota, nota_maxima: max, peso, date: date || null,
   }).eq("id", id);
   if (error) throw error;
 }

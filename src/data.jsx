@@ -30,7 +30,6 @@ const MODULES = {
 
 // boletim (loaded from Supabase notas table, seed fallback for UI initialization)
 const BOLETIM = [
-  { disc: "Português",       prof: "Prof. Português",   notas: [null, null, null, null] },
   { disc: "Matemática",      prof: "Prof. Matemática",  notas: [null, null, null, null] },
   { disc: "História",        prof: "Prof. História",    notas: [null, null, null, null] },
   { disc: "Geografia",       prof: "Prof. Geografia",   notas: [null, null, null, null] },
@@ -39,7 +38,6 @@ const BOLETIM = [
   { disc: "Física",          prof: "Prof. Física",      notas: [null, null, null, null] },
   { disc: "Química",         prof: "Prof. Química",     notas: [null, null, null, null] },
   { disc: "Educação Financeira", prof: "Prof. Educação Financeira", notas: [null, null, null, null] },
-  { disc: "Produção Textual",    prof: "Prof. Produção Textual",    notas: [null, null, null, null] },
   { disc: "Iniciação Científica", prof: "Prof. Iniciação Científica", notas: [null, null, null, null] },
   { disc: "Artes",           prof: "Prof. Artes",       notas: [null, null, null, null] },
   { disc: "Educação Física", prof: "Prof. Educação Física", notas: [null, null, null, null] },

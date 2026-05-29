@@ -8,6 +8,14 @@ const CAT_DEF = [
   { key: "VA", label: "VA",              peso: 35, color: "var(--accent-3)", soft: "oklch(0.93 0.05 145)", ink: "oklch(0.25 0.10 145)" },
 ];
 
+const PASS = 6; // nota mínima de aprovação
+
+const CAT_SUBTYPES = {
+  PB: ["Prova Bimestral", "Prova Anglo"],
+  VA: ["Escrita", "Trabalho", "Caderno"],
+  Q:  ["Empenho"],
+};
+
 // generate seed activities for each discipline / bimestre
 const seedBoletim = () => {
   const data = {};
@@ -87,6 +95,7 @@ const buildBoletimFromAtividades = (rows) => {
     base[disc].bims[bi][cat].push({
       id:   row.id,
       nome: row.name,
+      subtype: row.subtype || "",
       desc: row.description || "",
       nota: Number(row.nota),
       max:  Number(row.nota_maxima) || 10,
@@ -119,7 +128,7 @@ function BoletimScreen({ onNav, isMobile, userId }) {
   const mediaGeral = allBimAvgs.length ? allBimAvgs.reduce((a,b)=>a+b,0) / allBimAvgs.length : 0;
   const maior = allBimAvgs.length ? Math.max(...allBimAvgs) : 0;
   const menor = allBimAvgs.length ? Math.min(...allBimAvgs) : 0;
-  const aprovado = mediaGeral >= 7;
+  const aprovado = mediaGeral >= PASS;
   const discList = Object.keys(data).sort();
 
   // Raw normalized grades (nota/max * 10) for all activities
@@ -178,7 +187,7 @@ function BoletimScreen({ onNav, isMobile, userId }) {
         eyebrow="04 · Boletim"
         title="Boletim"
         titleEm={tab === "geral" ? "geral" : tab === "detalhado" ? "detalhado" : tab === "stats" ? "em números" : "em gráficos"}
-        meta={<>Ano letivo <b>2026 — 9C</b><br/>Situação <b style={{ color: aprovado ? "var(--ok)" : "var(--err)" }}>{aprovado ? "APROVADO" : "EM RISCO"}</b></>}
+        meta={<>Ano letivo <b>2026 — 9C</b><br/>Nota mínima: <b>6,0</b> · Situação <b style={{ color: aprovado ? "var(--ok)" : "var(--err)" }}>{aprovado ? `APROVADO (${mediaGeral.toFixed(1)})` : `EM RISCO (${mediaGeral.toFixed(1)})`}</b></>}
       />
 
       <style>{`
@@ -211,7 +220,7 @@ function BoletimScreen({ onNav, isMobile, userId }) {
         }
         .bo-row {
           display: grid;
-          grid-template-columns: 36px 1.5fr 1fr repeat(4, 70px) 80px;
+          grid-template-columns: 36px 1.4fr 1fr repeat(4, 60px) 80px 70px;
           gap: 12px;
           padding: 14px 22px;
           align-items: center;
@@ -399,7 +408,7 @@ function BoletimGeral({ data, discList, onOpenDisc }) {
                   {avg == null ? <span style={{ color: "var(--ink-mute)" }}>—</span> : avg.toFixed(1)}
                 </span>
               ))}
-              <span className={"final " + (final == null ? "" : final >= 7 ? "ok" : "bad")}>
+              <span className={"final " + (final == null ? "" : final >= PASS ? "ok" : "bad")}>
                 {final == null ? "—" : final.toFixed(1)}
               </span>
             </div>
@@ -605,12 +614,13 @@ function ActivityModal({ ctx, onClose, onSave }) {
   const [max,  setMax]  = React.useState(editing.max  ?? 10);
   const [peso, setPeso] = React.useState(editing.peso ?? 1);
   const [data, setData] = React.useState(editing.data || "");
+  const [subtype, setSubtype] = React.useState(editing.subtype || "");
 
   const catLabel = CAT_DEF.find(c => c.key === ctx.cat).label;
 
   const submit = (e) => {
     e.preventDefault();
-    onSave({ ...(editing.id ? { id: editing.id } : {}), nome, desc, nota: Number(nota), max: Number(max), peso: Number(peso), data });
+    onSave({ ...(editing.id ? { id: editing.id } : {}), subtype, nome, desc, nota: Number(nota), max: Number(max), peso: Number(peso), data });
   };
 
   return (
@@ -634,6 +644,21 @@ function ActivityModal({ ctx, onClose, onSave }) {
         </div>
 
         <form className="act-body" onSubmit={submit}>
+          {CAT_SUBTYPES[ctx.cat]?.length > 0 && (
+            <div>
+              <label className="field-label">Tipo de atividade</label>
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:4 }}>
+                {CAT_SUBTYPES[ctx.cat].map(opt => (
+                  <button key={opt} type="button"
+                    className={"btn " + (subtype === opt ? "btn-primary" : "btn-ghost")}
+                    style={{ padding:"7px 14px", fontSize:12 }}
+                    onClick={() => { setSubtype(opt); if (!nome) setNome(opt); }}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div>
             <label className="field-label">Nome da atividade</label>
             <input className="input" placeholder="Ex: Prova Anglo P7 8" value={nome} onChange={(e) => setNome(e.target.value)} required autoFocus />
@@ -927,7 +952,7 @@ function BoletimDesempenho({ data, discList }) {
             <div className="progress" style={{ height: 12 }}>
               <i style={{ width: `${((s.final ?? 0)/10)*100}%` }} />
             </div>
-            <div style={{ textAlign: "right", fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 24, letterSpacing: "-0.02em", color: s.final == null ? "var(--ink-mute)" : s.final >= 7 ? "var(--primary)" : "var(--err)" }}>
+            <div style={{ textAlign: "right", fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 24, letterSpacing: "-0.02em", color: s.final == null ? "var(--ink-mute)" : s.final >= PASS ? "var(--primary)" : "var(--err)" }}>
               {s.final == null ? "—" : s.final.toFixed(1)}
             </div>
           </div>
@@ -962,8 +987,8 @@ function BoletimLine({ bims }) {
             <text x={pad.l - 6} y={y(t) + 4} fontFamily="JetBrains Mono" fontSize="10" fill="var(--ink-mute)" textAnchor="end">{t}</text>
           </g>
         ))}
-        <line x1={pad.l} y1={y(7)} x2={w-pad.r} y2={y(7)} stroke="var(--accent-2)" strokeWidth="1" strokeDasharray="4 4" />
-        <text x={w-pad.r-2} y={y(7)-4} fontFamily="JetBrains Mono" fontSize="10" fill="var(--accent-2)" textAnchor="end">7 · aprovação</text>
+        <line x1={pad.l} y1={y(PASS)} x2={w-pad.r} y2={y(PASS)} stroke="var(--accent-2)" strokeWidth="1" strokeDasharray="4 4" />
+        <text x={w-pad.r-2} y={y(PASS)-4} fontFamily="JetBrains Mono" fontSize="10" fill="var(--accent-2)" textAnchor="end">{PASS} · aprovação</text>
         <path d={path} stroke="var(--primary)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         {pathPts.map((p, i) => (
           <g key={i}>
@@ -983,7 +1008,7 @@ function BoletimHeatmap({ series }) {
     if (v == null) return "var(--rule-soft)";
     if (v >= 9)   return "oklch(0.55 0.18 148)";
     if (v >= 7.5) return "oklch(0.65 0.18 148)";
-    if (v >= 7)   return "oklch(0.75 0.18 100)";
+    if (v >= PASS) return "oklch(0.75 0.18 100)";
     if (v >= 5)   return "oklch(0.78 0.16 60)";
     return "oklch(0.62 0.22 25)";
   };
@@ -1025,16 +1050,18 @@ function BoletimEstatisticas({ data, discList, allActs }) {
   const [fCat,   setFCat]   = React.useState(null);
   const [fDisc,  setFDisc]  = React.useState(null);
   const [logFil, setLogFil] = React.useState("all");
+  const [fSub, setFSub] = React.useState(null); // subtype filter
 
-  const hasFilter = fBim !== null || fCat !== null || fDisc !== null;
-  const resetAll  = () => { setFBim(null); setFCat(null); setFDisc(null); };
+  const hasFilter = fBim !== null || fCat !== null || fDisc !== null || fSub !== null;
+  const resetAll  = () => { setFBim(null); setFCat(null); setFDisc(null); setFSub(null); };
 
   const filtered = React.useMemo(() => allActs.filter(a => {
     if (fBim  !== null && a.bimestre !== fBim + 1) return false;
     if (fCat  !== null && a.type !== CAT_TYPE[fCat]) return false;
     if (fDisc !== null && a.subject !== fDisc) return false;
+    if (fSub !== null && a.subtype !== fSub) return false;
     return true;
-  }), [allActs, fBim, fCat, fDisc]);
+  }), [allActs, fBim, fCat, fDisc, fSub]);
 
   // ── Stats gerais sobre o conjunto filtrado ──
   const stats = React.useMemo(() => {
@@ -1045,7 +1072,7 @@ function BoletimEstatisticas({ data, discList, allActs }) {
     const avg  = ns.reduce((a, b) => a + b, 0) / n;
     const med  = n % 2 === 0 ? (srt[n/2-1] + srt[n/2]) / 2 : srt[Math.floor(n/2)];
     const std  = n > 1 ? Math.sqrt(ns.reduce((a, b) => a + (b - avg) ** 2, 0) / n) : 0;
-    const appr = filtered.filter(a => a.norm >= 7).length;
+    const appr = filtered.filter(a => a.norm >= PASS).length;
     return {
       n, avg, med, std,
       amp:   srt[n-1] - srt[0],
@@ -1067,7 +1094,7 @@ function BoletimEstatisticas({ data, discList, allActs }) {
     const avg = ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : null;
     const med = ns.length ? srt[Math.floor(ns.length / 2)] : null;
     const std = ns.length > 1 ? Math.sqrt(ns.reduce((a, b) => a + (b - avg) ** 2, 0) / ns.length) : null;
-    return { bi, count: acts.length, avg, med, std, appr: acts.filter(a => a.norm >= 7).length };
+    return { bi, count: acts.length, avg, med, std, appr: acts.filter(a => a.norm >= PASS).length };
   }), [allActs, fDisc, fCat]);
 
   const bimWithData = bimStats.filter(b => b.avg !== null);
@@ -1080,7 +1107,7 @@ function BoletimEstatisticas({ data, discList, allActs }) {
     const ns   = acts.map(a => a.norm);
     const avg  = ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : null;
     const std  = ns.length > 1 ? Math.sqrt(ns.reduce((a, b) => a + (b - avg) ** 2, 0) / ns.length) : 0;
-    const appr = acts.filter(a => a.norm >= 7).length;
+    const appr = acts.filter(a => a.norm >= PASS).length;
     const byBim = [0,1,2,3].map(bi => {
       const ba = allActs.filter(a => a.type === CAT_TYPE[cat.key] && a.bimestre === bi + 1 && (fDisc === null || a.subject === fDisc));
       const bn = ba.map(a => a.norm);
@@ -1105,7 +1132,7 @@ function BoletimEstatisticas({ data, discList, allActs }) {
       const bn = ba.map(a => a.norm);
       return bn.length ? bn.reduce((a, b) => a + b, 0) / bn.length : null;
     });
-    return { disc, count: acts.length, avg, std, appr: acts.filter(a => a.norm >= 7).length, bims };
+    return { disc, count: acts.length, avg, std, appr: acts.filter(a => a.norm >= PASS).length, bims };
   }).filter(s => s.count > 0).sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1)), [filtered, allActs, fCat]);
 
   // ── Risco de reprovação (bims reais, respeita fDisc) ──
@@ -1269,6 +1296,13 @@ function BoletimEstatisticas({ data, discList, allActs }) {
             <button key={d} className={"fbt dsc "+(fDisc===d?"fa":"")} onClick={()=>setFDisc(fDisc===d?null:d)} title={d}>{d}</button>
           ))}
         </div>
+        <div className="est-fg">
+          <span className="efgl">Subtipo</span>
+          <button className={"fbt "+(fSub===null?"fa":"")} onClick={()=>setFSub(null)}>Todos</button>
+          {Object.values(CAT_SUBTYPES).flat().filter((v,i,a)=>a.indexOf(v)===i).map(s=>(
+            <button key={s} className={"fbt "+(fSub===s?"fa":"")} onClick={()=>setFSub(fSub===s?null:s)}>{s}</button>
+          ))}
+        </div>
       </div>
 
       {hasFilter && (
@@ -1276,6 +1310,7 @@ function BoletimEstatisticas({ data, discList, allActs }) {
           {fBim!==null  && <span className="ftag">{BIMESTRES[fBim]} bim <button onClick={()=>setFBim(null)}>×</button></span>}
           {fCat!==null  && <span className="ftag">{CAT_DEF.find(c=>c.key===fCat)?.label} <button onClick={()=>setFCat(null)}>×</button></span>}
           {fDisc!==null && <span className="ftag">{fDisc} <button onClick={()=>setFDisc(null)}>×</button></span>}
+          {fSub!==null  && <span className="ftag">{fSub} <button onClick={()=>setFSub(null)}>×</button></span>}
           <span style={{ font:"600 11px/1 JetBrains Mono", color:"var(--ink-mute)" }}>{total} atividade{total!==1?"s":""} no recorte</span>
           <button className="btn btn-ghost" style={{ padding:"4px 10px", fontSize:11 }} onClick={resetAll}>Limpar tudo</button>
         </div>
