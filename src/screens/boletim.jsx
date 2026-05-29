@@ -99,34 +99,37 @@ const buildBoletimFromAtividades = (rows) => {
 };
 
 function BoletimScreen({ onNav, isMobile, userId }) {
-  const [tab, setTab] = React.useState("geral");   // geral | detalhado | desempenho
+  const [tab, setTab] = React.useState("geral");   // geral | detalhado | stats | desempenho
   const [year, setYear] = React.useState("2026");
 
   const atividades = useAtividades(userId, year);
   const [data, setData] = React.useState(() => seedBoletim());
 
-  // Quando chegam atividades reais do Supabase, substitui os dados mock
   React.useEffect(() => {
     if (atividades && atividades.length > 0) {
       setData(buildBoletimFromAtividades(atividades));
     }
   }, [atividades]);
 
-  // visao geral state: clicking disciplina opens "manage activities" overlay
-  const [openDisc, setOpenDisc] = React.useState(null); // string disc name
-  // detalhado state: which disc is selected
+  const [openDisc, setOpenDisc] = React.useState(null);
   const [selectedDisc, setSelectedDisc] = React.useState(() => Object.keys(seedBoletim()).sort()[0]);
-  // activity modal
-  const [actModal, setActModal] = React.useState(null); // { disc, bim, cat, editing? }
+  const [actModal, setActModal] = React.useState(null);
 
-  // computed across all
   const allBimAvgs = Object.values(data).flatMap(d => [0,1,2,3].map(b => bimAverage(d.bims[b])).filter(v => v != null));
   const mediaGeral = allBimAvgs.length ? allBimAvgs.reduce((a,b)=>a+b,0) / allBimAvgs.length : 0;
   const maior = allBimAvgs.length ? Math.max(...allBimAvgs) : 0;
   const menor = allBimAvgs.length ? Math.min(...allBimAvgs) : 0;
   const aprovado = mediaGeral >= 7;
-
   const discList = Object.keys(data).sort();
+
+  // Raw normalized grades (nota/max * 10) for all activities
+  const allActs = React.useMemo(() => {
+    if (!atividades) return [];
+    return atividades.map(a => ({
+      ...a,
+      norm: ((Number(a.nota) / (Number(a.nota_maxima) || 10)) * 10),
+    }));
+  }, [atividades]);
 
   const isUUID = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
@@ -174,7 +177,7 @@ function BoletimScreen({ onNav, isMobile, userId }) {
       <PageHead
         eyebrow="04 · Boletim"
         title="Boletim"
-        titleEm={tab === "geral" ? "geral" : tab === "detalhado" ? "detalhado" : "em gráficos"}
+        titleEm={tab === "geral" ? "geral" : tab === "detalhado" ? "detalhado" : tab === "stats" ? "em números" : "em gráficos"}
         meta={<>Ano letivo <b>2026 — 9C</b><br/>Situação <b style={{ color: aprovado ? "var(--ok)" : "var(--err)" }}>{aprovado ? "APROVADO" : "EM RISCO"}</b></>}
       />
 
@@ -263,13 +266,16 @@ function BoletimScreen({ onNav, isMobile, userId }) {
       <div className="bo-tabs-row">
         <div className="bo-tabs">
           <button className={tab === "geral" ? "on" : ""} onClick={() => setTab("geral")}>
-            <Icon name="doc" size={14}/> Visão Geral
+            <Icon name="doc" size={14}/> Geral
           </button>
           <button className={tab === "detalhado" ? "on" : ""} onClick={() => setTab("detalhado")}>
             <Icon name="search" size={14}/> Detalhado
           </button>
+          <button className={tab === "stats" ? "on" : ""} onClick={() => setTab("stats")}>
+            <Icon name="chart" size={14}/> Estatísticas
+          </button>
           <button className={tab === "desempenho" ? "on" : ""} onClick={() => setTab("desempenho")}>
-            <Icon name="chart" size={14}/> Desempenho
+            <Icon name="trophy" size={14}/> Evolução
           </button>
         </div>
         <div className="bim-tabs">
@@ -324,6 +330,10 @@ function BoletimScreen({ onNav, isMobile, userId }) {
           onEditActivity={(disc, bim, cat, act) => setActModal({ disc, bim, cat, editing: act })}
           onRemoveActivity={removeActivity}
         />
+      )}
+
+      {tab === "stats" && (
+        <BoletimEstatisticas data={data} discList={discList} allActs={allActs} />
       )}
 
       {tab === "desempenho" && (
@@ -1003,6 +1013,381 @@ function BoletimHeatmap({ series }) {
         </React.Fragment>
       ))}
     </div>
+  );
+}
+
+/* ───────── ESTATÍSTICAS ───────── */
+function BoletimEstatisticas({ data, discList, allActs }) {
+  const total = allActs.length;
+  const norms = allActs.map(a => a.norm);
+  const avgNorm = norms.length ? norms.reduce((a, b) => a + b, 0) / norms.length : 0;
+  const best  = total ? allActs.reduce((b, a) => a.norm > b.norm ? a : b) : null;
+  const worst = total ? allActs.reduce((b, a) => a.norm < b.norm ? a : b) : null;
+  const approved   = allActs.filter(a => a.norm >= 7).length;
+  const pctApproved = total ? (approved / total * 100) : 0;
+
+  const CAT_TYPE = { PB: "prova_bimestral", Q: "qualitativa", VA: "va" };
+  const catStats = CAT_DEF.map(cat => {
+    const acts = allActs.filter(a => a.type === CAT_TYPE[cat.key]);
+    const ns = acts.map(a => a.norm);
+    const avg = ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : null;
+    return { ...cat, count: acts.length, avg, max: ns.length ? Math.max(...ns) : null, min: ns.length ? Math.min(...ns) : null };
+  });
+
+  const BUCKETS = [
+    { label: "0–2",  color: "oklch(0.58 0.22 25)",  range: [0, 2] },
+    { label: "2–4",  color: "oklch(0.64 0.18 25)",  range: [2, 4] },
+    { label: "4–6",  color: "oklch(0.70 0.14 50)",  range: [4, 6] },
+    { label: "6–7",  color: "oklch(0.76 0.14 60)",  range: [6, 7] },
+    { label: "7–8",  color: "oklch(0.76 0.14 100)", range: [7, 8] },
+    { label: "8–9",  color: "oklch(0.66 0.18 148)", range: [8, 9] },
+    { label: "9–10", color: "oklch(0.52 0.20 148)", range: [9, 10.01] },
+  ];
+  const bucketCounts = BUCKETS.map(b => ({
+    ...b,
+    count: allActs.filter(a => a.norm >= b.range[0] && a.norm < b.range[1]).length,
+  }));
+  const maxB = Math.max(...bucketCounts.map(b => b.count), 1);
+
+  const subjRanking = discList.map(disc => {
+    const d = data[disc];
+    const bims = [0,1,2,3].map(b => bimAverage(d.bims[b]));
+    const finals = bims.filter(v => v != null);
+    const final = finals.length ? finals.reduce((a, b) => a + b, 0) / finals.length : null;
+    return { disc, bims, final };
+  }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
+
+  const riskSubjs = subjRanking.filter(s => s.final != null && s.final < 7);
+
+  const sorted = [...allActs].sort((a, b) => b.norm - a.norm);
+  const top5 = sorted.slice(0, 5);
+  const bot5 = sorted.slice(-5).reverse();
+
+  const [logFilter, setLogFilter] = React.useState("all");
+  const logActs = logFilter === "ok" ? sorted.filter(a => a.norm >= 7) : logFilter === "bad" ? sorted.filter(a => a.norm < 7) : sorted;
+
+  if (total === 0) {
+    return (
+      <div className="card card-pad" style={{ textAlign: "center", padding: 60, color: "var(--ink-mute)" }}>
+        <div style={{ fontFamily: "Bricolage Grotesque", fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Sem dados ainda</div>
+        <div style={{ fontSize: 14 }}>Adicione atividades no boletim para ver estatísticas detalhadas.</div>
+      </div>
+    );
+  }
+
+  return (
+    <React.Fragment>
+      <style>{`
+        .est-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+        .is-mobile .est-stat-grid { grid-template-columns: repeat(2, 1fr); }
+        .est-card { background: var(--paper); border: 1.5px solid var(--ink); border-radius: var(--r-3); box-shadow: 3px 3px 0 var(--ink); padding: 16px 18px; }
+        .est-card .ec-lbl { font: 700 10px/1 "JetBrains Mono", monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 8px; }
+        .est-card .ec-val { font-family: "Bricolage Grotesque"; font-weight: 700; font-stretch: 120%; letter-spacing: -0.04em; font-size: 30px; line-height: 1; }
+        .est-card .ec-sub { font: 600 11px/1.4 "JetBrains Mono", monospace; color: var(--ink-soft); margin-top: 6px; }
+
+        .histo-wrap { display: flex; align-items: flex-end; gap: 8px; height: 130px; padding-bottom: 28px; position: relative; }
+        .histo-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+        .histo-bar { width: 100%; border-radius: 6px 6px 0 0; min-height: 4px; }
+        .histo-lbl { font: 700 9.5px/1 "JetBrains Mono", monospace; color: var(--ink-mute); white-space: nowrap; }
+        .histo-cnt { font: 700 11px/1 "JetBrains Mono", monospace; color: var(--ink); }
+
+        .cat3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+        .is-mobile .cat3 { grid-template-columns: 1fr; }
+
+        .rank-item { display: grid; grid-template-columns: 40px 1.6fr 1fr 64px; gap: 12px; align-items: center; padding: 12px 0; }
+        .rank-item:not(:first-child) { border-top: 1.5px dashed var(--rule); }
+
+        .top-act { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+        .top-act:not(:first-child) { border-top: 1.5px dashed var(--rule); }
+        .n-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font: 700 12px/1 "JetBrains Mono", monospace; }
+        .n-ok  { background: oklch(0.92 0.12 148); color: oklch(0.28 0.14 148); }
+        .n-warn { background: oklch(0.94 0.12 60); color: oklch(0.34 0.12 60); }
+        .n-bad { background: oklch(0.95 0.10 25); color: oklch(0.40 0.20 25); }
+
+        .risk-row { border: 2px solid var(--err); border-radius: var(--r-3); padding: 16px 20px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; background: oklch(0.97 0.015 25); }
+        .risk-nm { font-family: "Bricolage Grotesque"; font-weight: 700; font-size: 19px; color: var(--err); }
+        .risk-info { font: 13px/1.6 "JetBrains Mono", monospace; color: var(--ink-soft); }
+        .needed { padding: 6px 12px; background: var(--err); color: white; border-radius: 999px; font: 700 13px/1 "JetBrains Mono", monospace; white-space: nowrap; }
+
+        .log-table { width: 100%; border-collapse: collapse; font: 12.5px/1.4 "JetBrains Mono", monospace; }
+        .log-table th { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); font-weight: 700; padding: 8px 12px; text-align: left; border-bottom: 1.5px solid var(--rule); position: sticky; top: 0; background: var(--paper); }
+        .log-table td { padding: 9px 12px; border-bottom: 1px solid var(--rule-soft); vertical-align: middle; }
+        .log-table tr:hover td { background: var(--accent); color: var(--accent-ink); }
+      `}</style>
+
+      {/* ── Bloco 1: Cards resumo ampliado ── */}
+      <div className="rule-h" style={{ margin: "0 0 12px" }}>
+        <span className="lbl">Visão geral · todas as atividades</span>
+        <span className="lbl muted">{total} registros</span>
+      </div>
+      <div className="est-stat-grid">
+        <div className="est-card">
+          <div className="ec-lbl">Total de atividades</div>
+          <div className="ec-val">{total}</div>
+          <div className="ec-sub">{discList.length} disciplinas</div>
+        </div>
+        <div className="est-card" style={{ background: pctApproved >= 70 ? "oklch(0.50 0.18 148)" : "var(--err)", borderColor: "var(--ink)", color: "white" }}>
+          <div className="ec-lbl" style={{ color: "rgba(255,255,255,0.65)" }}>Atividades aprovadas</div>
+          <div className="ec-val">{pctApproved.toFixed(0)}%</div>
+          <div className="ec-sub" style={{ color: "rgba(255,255,255,0.65)" }}>{approved} de {total}</div>
+        </div>
+        <div className="est-card">
+          <div className="ec-lbl">Média geral (norm)</div>
+          <div className="ec-val" style={{ color: avgNorm >= 7 ? "var(--primary)" : "var(--err)" }}>{avgNorm.toFixed(2)}</div>
+          <div className="ec-sub">de todas as notas normalizadas</div>
+        </div>
+        <div className="est-card">
+          <div className="ec-lbl">Disciplinas em risco</div>
+          <div className="ec-val" style={{ color: riskSubjs.length ? "var(--err)" : "var(--ok)" }}>{riskSubjs.length}</div>
+          <div className="ec-sub">de {discList.length} · abaixo de 7,0</div>
+        </div>
+      </div>
+      <div className="est-stat-grid" style={{ marginBottom: 24 }}>
+        {best && (
+          <div className="est-card" style={{ borderLeftColor: "var(--ok)", borderLeftWidth: 4 }}>
+            <div className="ec-lbl">Melhor atividade</div>
+            <div className="ec-val" style={{ color: "var(--ok)", fontSize: 26 }}>{best.norm.toFixed(1)}</div>
+            <div className="ec-sub" style={{ fontWeight: 700, color: "var(--ink)" }}>{best.name}</div>
+            <div style={{ marginTop: 4, fontSize: 10, color: "var(--ink-mute)", fontFamily: "JetBrains Mono" }}>{best.subject} · {best.bimestre}º bim</div>
+          </div>
+        )}
+        {worst && (
+          <div className="est-card" style={{ borderLeftColor: "var(--err)", borderLeftWidth: 4 }}>
+            <div className="ec-lbl">Pior atividade</div>
+            <div className="ec-val" style={{ color: "var(--err)", fontSize: 26 }}>{worst.norm.toFixed(1)}</div>
+            <div className="ec-sub" style={{ fontWeight: 700, color: "var(--ink)" }}>{worst.name}</div>
+            <div style={{ marginTop: 4, fontSize: 10, color: "var(--ink-mute)", fontFamily: "JetBrains Mono" }}>{worst.subject} · {worst.bimestre}º bim</div>
+          </div>
+        )}
+        {catStats.map(c => (
+          <div className="est-card" key={c.key} style={{ borderLeftColor: c.color, borderLeftWidth: 4 }}>
+            <div className="ec-lbl">{c.label}</div>
+            <div className="ec-val" style={{ color: c.ink, fontSize: 26 }}>{c.avg == null ? "—" : c.avg.toFixed(2)}</div>
+            <div className="ec-sub">{c.count} atividades · peso {c.peso}%</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Bloco 2: Histograma ── */}
+      <div className="rule-h" style={{ margin: "0 0 14px" }}>
+        <span className="lbl">Distribuição das notas normalizadas</span>
+        <span className="lbl muted">escala 0–10</span>
+      </div>
+      <div className="card card-pad" style={{ marginBottom: 24 }}>
+        <div className="histo-wrap">
+          {bucketCounts.map(b => (
+            <div key={b.label} className="histo-col">
+              <div className="histo-cnt">{b.count > 0 ? b.count : ""}</div>
+              <div className="histo-bar" style={{ height: `${(b.count / maxB) * 85}%`, background: b.color }} />
+              <div className="histo-lbl">{b.label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--rule)" }}>
+          {BUCKETS.map(b => (
+            <span key={b.label} style={{ display: "flex", alignItems: "center", gap: 5, font: "600 10.5px/1 JetBrains Mono", color: "var(--ink-soft)" }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: b.color, display: "inline-block" }} /> {b.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Bloco 3: Por categoria ── */}
+      <div className="rule-h" style={{ margin: "0 0 14px" }}>
+        <span className="lbl">Desempenho por categoria</span>
+      </div>
+      <div className="cat3">
+        {catStats.map(c => (
+          <div className="card card-pad" key={c.key} style={{ borderLeft: `4px solid ${c.color}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+              <div>
+                <div style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 19, color: c.ink }}>{c.label}</div>
+                <div className="f-mono muted" style={{ fontSize: 10, textTransform: "uppercase", marginTop: 3 }}>Peso {c.peso}%</div>
+              </div>
+              <div style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 34, color: c.ink, lineHeight: 1, letterSpacing: "-0.03em" }}>
+                {c.avg == null ? "—" : c.avg.toFixed(1)}
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, textAlign: "center", marginBottom: 12 }}>
+              {[
+                { lbl: "Atividades", val: c.count, clr: "var(--ink)", bg: "var(--bg)" },
+                { lbl: "Máx", val: c.max == null ? "—" : c.max.toFixed(1), clr: "oklch(0.28 0.14 148)", bg: "oklch(0.92 0.10 148)" },
+                { lbl: "Mín", val: c.min == null ? "—" : c.min.toFixed(1), clr: "oklch(0.40 0.20 25)", bg: "oklch(0.95 0.06 25)" },
+              ].map(item => (
+                <div key={item.lbl} style={{ background: item.bg, borderRadius: 8, padding: "8px 4px" }}>
+                  <div className="f-mono" style={{ fontSize: 9, color: item.clr, opacity: 0.7, textTransform: "uppercase", letterSpacing: "0.08em" }}>{item.lbl}</div>
+                  <div style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 20, color: item.clr }}>{item.val}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ height: 8, background: "var(--rule-soft)", borderRadius: 999, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${((c.avg ?? 0) / 10) * 100}%`, background: c.color, borderRadius: 999, transition: "width .4s ease" }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Bloco 4: Ranking de disciplinas ── */}
+      <div className="rule-h" style={{ margin: "0 0 14px" }}>
+        <span className="lbl">Ranking de disciplinas</span>
+        <span className="lbl muted">média final · maior → menor</span>
+      </div>
+      <div className="card card-pad" style={{ marginBottom: 24 }}>
+        {subjRanking.map((s, i) => (
+          <div key={s.disc} className="rank-item">
+            <div className="f-mono" style={{ fontSize: 15, fontWeight: 700, color: i === 0 ? "var(--primary)" : i < 3 ? "var(--ink-soft)" : "var(--ink-mute)" }}>
+              #{String(i + 1).padStart(2, "0")}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontFamily: "Bricolage Grotesque", fontSize: 16, letterSpacing: "-0.02em" }}>{s.disc}</div>
+              <div className="muted f-mono" style={{ fontSize: 10, marginTop: 2, letterSpacing: "0.02em" }}>
+                {s.bims.map((b, idx) => `${idx+1}º ${b == null ? "—" : b.toFixed(1)}`).join("  ·  ")}
+              </div>
+            </div>
+            <div>
+              <div style={{ height: 10, background: "var(--rule-soft)", borderRadius: 999, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%",
+                  width: `${((s.final ?? 0) / 10) * 100}%`,
+                  background: s.final == null ? "var(--rule-soft)" : s.final >= 7 ? "var(--primary)" : "var(--err)",
+                  borderRadius: 999, transition: "width .4s ease",
+                }} />
+              </div>
+            </div>
+            <div style={{ textAlign: "right", fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 22, letterSpacing: "-0.02em", color: s.final == null ? "var(--ink-mute)" : s.final >= 7 ? "var(--primary)" : "var(--err)" }}>
+              {s.final == null ? "—" : s.final.toFixed(1)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Bloco 5: Top 5 / Bottom 5 ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
+        <div>
+          <div className="rule-h" style={{ margin: "0 0 12px" }}>
+            <span className="lbl">Top 5 atividades</span>
+          </div>
+          <div className="card card-pad">
+            {top5.map((a, i) => (
+              <div key={a.id} className="top-act">
+                <div className="f-mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--ok)", minWidth: 22 }}>#{i+1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                  <div className="muted f-mono" style={{ fontSize: 10, marginTop: 2 }}>{a.subject} · {a.bimestre}º bim · {TYPE_TO_CAT[a.type] || a.type}</div>
+                </div>
+                <span className="n-badge n-ok">{a.norm.toFixed(1)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="rule-h" style={{ margin: "0 0 12px" }}>
+            <span className="lbl">Bottom 5 atividades</span>
+          </div>
+          <div className="card card-pad">
+            {bot5.map((a, i) => (
+              <div key={a.id} className="top-act">
+                <div className="f-mono" style={{ fontSize: 13, fontWeight: 700, color: "var(--err)", minWidth: 22 }}>#{i+1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                  <div className="muted f-mono" style={{ fontSize: 10, marginTop: 2 }}>{a.subject} · {a.bimestre}º bim · {TYPE_TO_CAT[a.type] || a.type}</div>
+                </div>
+                <span className={"n-badge " + (a.norm >= 7 ? "n-ok" : a.norm >= 5 ? "n-warn" : "n-bad")}>{a.norm.toFixed(1)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Bloco 6: Análise de risco ── */}
+      {riskSubjs.length > 0 && (
+        <React.Fragment>
+          <div className="rule-h" style={{ margin: "0 0 14px" }}>
+            <span className="lbl" style={{ color: "var(--err)" }}>Alerta · matérias em risco de reprovação</span>
+            <span className="lbl muted">{riskSubjs.length} disciplina{riskSubjs.length !== 1 ? "s" : ""} abaixo de 7</span>
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            {riskSubjs.map(s => {
+              const filledBims = s.bims.filter(b => b != null);
+              const currentSum = filledBims.reduce((a, b) => a + b, 0);
+              const remaining = 4 - filledBims.length;
+              const needed = remaining > 0 ? Math.min(10, (7 * 4 - currentSum) / remaining) : null;
+              return (
+                <div key={s.disc} className="risk-row">
+                  <div>
+                    <div className="risk-nm">{s.disc}</div>
+                    <div className="risk-info">
+                      Média atual: <b>{(s.final ?? 0).toFixed(2)}</b>
+                      {" · "}Déficit: <b>{(7 - (s.final ?? 0)).toFixed(2)} pts</b>
+                      {" · "}{remaining} bimestre{remaining !== 1 ? "s" : ""} restante{remaining !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                  {needed != null ? (
+                    <div style={{ textAlign: "right" }}>
+                      <div className="f-mono" style={{ fontSize: 9, color: "var(--ink-mute)", textTransform: "uppercase", marginBottom: 5 }}>Mínimo por bimestre</div>
+                      <span className="needed">{needed.toFixed(1)}</span>
+                    </div>
+                  ) : (
+                    <span className="needed" style={{ background: "oklch(0.42 0.22 25)" }}>Sem recuperação possível</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </React.Fragment>
+      )}
+
+      {/* ── Bloco 7: Log completo ── */}
+      <div className="rule-h" style={{ margin: "0 0 12px" }}>
+        <span className="lbl">Log completo de atividades</span>
+        <span className="lbl muted">{logActs.length} de {total}</span>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        {[["all", `Todas (${total})`], ["ok", `Aprovadas (${allActs.filter(a=>a.norm>=7).length})`], ["bad", `Abaixo de 7 (${allActs.filter(a=>a.norm<7).length})`]].map(([v, l]) => (
+          <button key={v} className={"btn " + (logFilter === v ? "btn-primary" : "btn-ghost")} style={{ padding: "6px 14px", fontSize: 12 }} onClick={() => setLogFilter(v)}>{l}</button>
+        ))}
+      </div>
+      <div className="card" style={{ overflow: "auto", marginBottom: 28, maxHeight: 480 }}>
+        <table className="log-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nome</th>
+              <th>Disciplina</th>
+              <th>Bim</th>
+              <th>Tipo</th>
+              <th>Nota</th>
+              <th>Máx</th>
+              <th>Norm</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logActs.map((a, i) => (
+              <tr key={a.id}>
+                <td style={{ color: "var(--ink-mute)" }}>{i + 1}</td>
+                <td style={{ fontWeight: 700 }}>{a.name}</td>
+                <td style={{ color: "var(--ink-soft)" }}>{a.subject}</td>
+                <td style={{ textAlign: "center" }}>{a.bimestre}º</td>
+                <td>
+                  <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, background: "var(--rule-soft)" }}>
+                    {TYPE_TO_CAT[a.type] || a.type}
+                  </span>
+                </td>
+                <td style={{ fontWeight: 700, color: "var(--primary)" }}>{a.nota}</td>
+                <td style={{ color: "var(--ink-mute)" }}>{a.nota_maxima}</td>
+                <td>
+                  <span className={"n-badge " + (a.norm >= 7 ? "n-ok" : a.norm >= 5 ? "n-warn" : "n-bad")}>
+                    {a.norm.toFixed(1)}
+                  </span>
+                </td>
+                <td style={{ color: "var(--ink-mute)", fontSize: 11 }}>{a.date || a.created_at?.slice(0, 10) || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </React.Fragment>
   );
 }
 
